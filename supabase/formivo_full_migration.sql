@@ -650,7 +650,7 @@ $$;
 --    functions directly. Only the app roles should reach them.
 --    (mint_form_secret is created in migration 015 and revoked there.)
 do $$ begin
-  revoke execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, text, date, date) from public;
+  revoke execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, timestamptz, date, date) from public;
 exception
   when others then raise notice 'revoke skipped: %', sqlerrm;
 end $$;
@@ -689,7 +689,7 @@ end $$;
 revoke all on schema public from api_submission;
 grant usage on schema public to api_submission;
 do $$ begin
-  grant execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, text, date, date) to api_submission;
+  grant execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, timestamptz, date, date) to api_submission;
 exception
   when others then raise notice 'grant skipped: %', sqlerrm;
 end $$;

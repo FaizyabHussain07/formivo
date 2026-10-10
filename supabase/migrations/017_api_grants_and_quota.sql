@@ -22,6 +22,9 @@
 -- Ordering rule: always (re)create the 9-arg function FIRST, then remove
 -- the legacy overload. Every revoke of a possibly-absent signature is
 -- guarded, so a missing function/role can never abort the script.
+-- IMPORTANT: 014's 6th parameter is TIMESTAMPTZ (p_idempotency_expires_at)
+-- — every hand-written (..., text, date, date) signature below is wrong and
+-- raises 42883. Signatures are checked against the actual definitions.
 
 -- ── 1. Atomic quota-enforcing lead creation ─────────────────────────
 -- Use CREATE OR REPLACE (not drop + create) so the function keeps existing
@@ -144,28 +147,33 @@ end;
 $$;
 
 -- Remove the legacy 8-arg overload left by migration 014 (no-op when absent).
--- Its EXECUTE grants vanish with it — an UNGUARDED revoke of this signature
--- is exactly what previously aborted this script with 42883.
--- Matched via pg_proc.pronargs = 8 so the 9-arg function (whose 9th param has
--- a default) can never be the target of this drop.
-do $$ begin
-  if exists (
-    select 1 from pg_proc p
-    join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public'
-      and p.proname = 'create_lead_with_idempotency'
-      and p.pronargs = 8
-  ) then
-    execute 'drop function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, text, date, date)';
-  end if;
+-- Its EXECUTE grants vanish with it. The argument list is DERIVED from
+-- pg_proc, never hand-written: 014's 6th parameter is TIMESTAMPTZ, and every
+-- hand-typed (..., text, text, date, date) signature has aborted this script
+-- with 42883 because that exact overload does not exist.
+-- pronargs = 8 guarantees the 9-arg function (9th param has a default) is
+-- never the target of this drop.
+do $$
+declare r record;
+begin
+  for r in
+    select pg_get_function_identity_arguments(p.oid) as args
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public'
+       and p.proname = 'create_lead_with_idempotency'
+       and p.pronargs = 8
+  loop
+    execute format('drop function public.create_lead_with_idempotency(%s)', r.args);
+  end loop;
 end $$;
 
 -- ── 2. Revoke unauthenticated execute on sensitive functions ────────
 -- Guarded: undefined_function / undefined_object must not abort the script
 -- (the function or role may not exist on this database).
 do $$ begin
-  revoke execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, text, date, date, integer) FROM PUBLIC;
-  revoke execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, text, date, date, integer) from anon, authenticated;
+  revoke execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, timestamptz, date, date, integer) FROM PUBLIC;
+  revoke execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, timestamptz, date, date, integer) from anon, authenticated;
 exception when undefined_function then null; when undefined_object then null; end $$;
 
 do $$ begin
@@ -183,11 +191,11 @@ exception when undefined_function then null; when undefined_object then null; en
 -- (api_submission is created by 014; guarded in case 014 was never applied.)
 do $$ begin
   if exists (select 1 from pg_roles where rolname = 'api_submission') then
-    grant execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, text, date, date, integer) to api_submission;
+    grant execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, timestamptz, date, date, integer) to api_submission;
   end if;
 end $$;
 
-revoke execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, text, date, date, integer) FROM PUBLIC;
-revoke execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, text, date, date, integer) from anon, authenticated;
-grant execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, text, date, date, integer) to service_role;
+revoke execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, timestamptz, date, date, integer) FROM PUBLIC;
+revoke execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, timestamptz, date, date, integer) from anon, authenticated;
+grant execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, timestamptz, date, date, integer) to service_role;
   

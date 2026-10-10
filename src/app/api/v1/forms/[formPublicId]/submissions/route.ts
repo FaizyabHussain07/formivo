@@ -287,12 +287,19 @@ export async function POST(
     );
 
     // Migration 017 added p_max_leads (9-arg). If the live DB still has the
-    // pre-017 8-arg function, fall back by dropping the new arg. If the
-    // function is genuinely missing (no migration ran at all), fail closed.
+    // pre-017 8-arg function, PostgREST cannot resolve the 9-named-arg call
+    // and reports PGRST202 ("Could not find the function ...") — a raw 42883
+    // only surfaces when Postgres itself rejects the signature. Accept either
+    // so the legacy fallback actually fires. If the function is genuinely
+    // missing, the retry fails too and we fall through to the shared error
+    // handling below (fail closed).
     if (
       rpcError &&
-      /does not exist|not find function/i.test(rpcError.message ?? '') &&
-      rpcError.code === '42883'
+      (rpcError.code === 'PGRST202' ||
+        rpcError.code === '42883' ||
+        /could not find the function|does not exist|not find function/i.test(
+          rpcError.message ?? '',
+        ))
     ) {
       const { p_max_leads: _drop, ...legacyArgs } = rpcArgs;
       const legacy = await db.rpc('create_lead_with_idempotency', legacyArgs);

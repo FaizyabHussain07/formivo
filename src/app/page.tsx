@@ -1,69 +1,196 @@
-import Image from "next/image";
+import Link from "next/link";
+import { MarketingHeader, MarketingFooter } from "@/components/marketing";
+import { LinkButton, CodeBlock, Card } from "@/components/ui";
+import { PLANS } from "@/lib/plans";
 
-export default function Home() {
+const steps = [
+  {
+    title: "Connect your form",
+    body: "Send submissions from your existing website form to a Formivo endpoint.",
+  },
+  {
+    title: "Manage your leads",
+    body: "Every valid submission becomes a lead you can search, review, and organize.",
+  },
+  {
+    title: "Give clients access",
+    body: "Invite clients to a focused read-only dashboard without exposing your technical configuration.",
+  },
+];
+
+const flow = ["Your Website", "Existing Form", "Formivo API", "Lead", "Formivo Dashboard"];
+
+const integrationSample = `await fetch("https://app.formivo.com/api/v1/forms/form_abc123/submissions", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer FORM_SECRET",
+  },
+  body: JSON.stringify({
+    data: { name: "John Doe", email: "john@example.com" },
+  }),
+});`;
+
+const planOrder = ["free", "pro", "agency"] as const;
+
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div className="flex min-h-full flex-col">
+      <MarketingHeader />
+
+      <main className="flex-1">
+        {/* Hero */}
+        <section className="border-b border-border">
+          <div className="container-page flex flex-col items-center py-20 text-center md:py-28">
+            <p className="badge mb-6 border-primary/25 text-primary">
+              For developers &amp; agencies
+            </p>
+            <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-balance md:text-5xl">
+              Connect your forms. Capture your leads. Give clients their dashboard.
+            </h1>
+            <p className="mt-5 max-w-2xl text-base text-muted-foreground md:text-lg">
+              Formivo gives developers a simple, secure way to connect existing website
+              forms, manage incoming leads, and give clients a professional read-only dashboard.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <LinkButton href="/sign-up" size="lg">
+                Start Free
+              </LinkButton>
+              <LinkButton href="/docs" variant="secondary" size="lg">
+                View Documentation
+              </LinkButton>
+            </div>
+          </div>
+        </section>
+
+        {/* How it works */}
+        <section className="border-b border-border py-16 md:py-20">
+          <div className="container-page">
+            <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">How it works</h2>
+            <p className="mt-2 max-w-xl text-muted-foreground">
+              Three steps between your existing form and a professional lead dashboard.
+            </p>
+            <div className="mt-10 grid gap-4 md:grid-cols-3">
+              {steps.map((step, i) => (
+                <Card key={step.title} className="p-6">
+                  <p className="text-xs font-medium text-primary">Step {i + 1}</p>
+                  <h3 className="mt-2 text-[15px] font-semibold">{step.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">{step.body}</p>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Developer workflow */}
+        <section className="border-b border-border py-16 md:py-20">
+          <div className="container-page grid items-center gap-10 lg:grid-cols-2">
+            <div>
+              <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
+                Works with the forms you already built
+              </h2>
+              <p className="mt-3 text-muted-foreground">
+                HTML, React, WordPress, Webflow — anything that can make an HTTP request.
+                Point your existing form at your Formivo endpoint and every valid submission
+                becomes a lead.{" "}
+                <span className="font-medium text-foreground">No form rebuild required.</span>
+              </p>
+            </div>
+            <div className="overflow-hidden rounded-xl border border-border bg-surface p-6">
+              {flow.map((node, i) => (
+                <div key={node}>
+                  <div className="flex justify-center rounded-md border border-border bg-surface-muted px-4 py-2 font-mono text-[13px]">
+                    {node}
+                  </div>
+                  {i < flow.length - 1 && (
+                    <div aria-hidden className="flex justify-center py-1 text-subtle-foreground">
+                      ↓
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Integration sample */}
+        <section className="border-b border-border py-16 md:py-20">
+          <div className="container-page grid items-center gap-10 lg:grid-cols-2">
+            <div>
+              <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
+                One endpoint. One secret. Done.
+              </h2>
+              <p className="mt-3 text-muted-foreground">
+                Create a form in Formivo, copy your endpoint and secret, and submit.
+                Your dashboard fills itself.
+              </p>
+              <p className="mt-4 text-sm text-muted-foreground">
+                Keep your secret on your server whenever possible — see the{" "}
+                <Link href="/docs" className="text-link underline-offset-4 hover:underline">
+                  security guidance
+                </Link>
+                .
+              </p>
+            </div>
+            <CodeBlock>{integrationSample}</CodeBlock>
+          </div>
+        </section>
+
+        {/* Client dashboard */}
+        <section className="border-b border-border py-16 md:py-20">
+          <div className="container-page">
+            <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
+              Clients see the leads they need. Your credentials stay private.
+            </h2>
+            <p className="mt-3 max-w-2xl text-muted-foreground">
+              Invite a client to a specific form and they get a clean read-only dashboard —
+              their leads, their analytics. No API secrets, no developer settings, no billing.
+            </p>
+          </div>
+        </section>
+
+        {/* Pricing summary */}
+        <section className="py-16 md:py-20">
+          <div className="container-page">
+            <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
+              Simple, honest pricing
+            </h2>
+            <p className="mt-2 text-muted-foreground">
+              Start free. Upgrade when your forms earn it.
+            </p>
+            <div className="mt-10 grid gap-4 md:grid-cols-3">
+              {planOrder.map((id) => {
+                const plan = PLANS[id];
+                return (
+                  <Card
+                    key={id}
+                    className={id === "pro" ? "border-primary/40 p-6" : "p-6"}
+                  >
+                    <div className="flex items-baseline justify-between">
+                      <h3 className="text-[15px] font-semibold">{plan.displayName}</h3>
+                      <p className="text-2xl font-semibold tracking-tight">
+                        ${plan.monthyPriceUsd}
+                        <span className="text-sm font-normal text-muted-foreground">/mo</span>
+                      </p>
+                    </div>
+                    <p className="mt-2 text-sm text-muted-foreground">{plan.blurb}</p>
+                    <LinkButton
+                      href="/pricing"
+                      variant={id === "pro" ? "primary" : "secondary"}
+                      size="sm"
+                      className="mt-5 w-full"
+                    >
+                      {id === "free" ? "Start Free" : `Choose ${plan.displayName}`}
+                    </LinkButton>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        </section>
       </main>
+
+      <MarketingFooter />
     </div>
   );
 }

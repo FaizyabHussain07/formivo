@@ -146,13 +146,15 @@ begin
 end;
 $$;
 
--- Remove the legacy 8-arg overload left by migration 014 (no-op when absent).
--- Its EXECUTE grants vanish with it. The argument list is DERIVED from
--- pg_proc, never hand-written: 014's 6th parameter is TIMESTAMPTZ, and every
--- hand-typed (..., text, text, date, date) signature has aborted this script
--- with 42883 because that exact overload does not exist.
--- pronargs = 8 guarantees the 9-arg function (9th param has a default) is
--- never the target of this drop.
+-- Remove any legacy overload of create_lead_with_idempotency (no-op when
+-- absent). Its EXECUTE grants vanish with it. The argument list is DERIVED
+-- from pg_proc, never hand-written: 014's 6th parameter is TIMESTAMPTZ, and
+-- every hand-typed (..., text, text, date, date) signature has aborted this
+-- script with 42883 because that exact overload does not exist.
+-- Anything that is NOT the canonical 9-arg function is dropped, so this also
+-- cleans up a stray 8-arg overload reintroduced by re-running 014 or
+-- formivo_full_migration.sql AFTER this script. The 9-arg function (9th
+-- param has a default) is never the target.
 do $$
 declare r record;
 begin
@@ -162,7 +164,7 @@ begin
       join pg_namespace n on n.oid = p.pronamespace
      where n.nspname = 'public'
        and p.proname = 'create_lead_with_idempotency'
-       and p.pronargs = 8
+       and p.pronargs <> 9
   loop
     execute format('drop function public.create_lead_with_idempotency(%s)', r.args);
   end loop;

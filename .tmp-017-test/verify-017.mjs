@@ -223,15 +223,37 @@ check('quota exceeded → QUOTA_EXCEEDED', /QUOTA_EXCEEDED/.test(quota || ''), q
 const r4 = await call(['frm_probe', 'hash-3', { name: 'D' }, null, 'idem-key-3', '2026-11-30T00:00:00Z', '2026-10-01', '2026-11-01'], 'service_role');
 check('8-named-arg fallback call resolves (default p_max_leads)', r4.rows[0]?.created === true, JSON.stringify(r4.rows));
 
-// ── 5. Idempotent re-run ────────────────────────────────────────────
+// ── 5. Self-healing re-run ─────────────────────────────────────────
+// Simulate production reality: a stray 8-arg overload comes BACK (someone
+// re-ran 014 / formivo_full_migration.sql after 017). Re-running 017 must
+// remove it — this is exactly the state found live on the deployed DB
+// (PostgREST PGRST203 ambiguity).
+try {
+  await db.exec(`
+    create function public.create_lead_with_idempotency(
+      p_form_public_id text, p_request_hash text, p_data jsonb, p_metadata jsonb,
+      p_idempotency_key text, p_idempotency_expires_at timestamptz,
+      p_usage_period_start date, p_usage_period_end date)
+    returns table (created boolean, lead_id uuid, conflict boolean)
+    language plpgsql security definer set search_path = ''
+    as $fn$ begin return query select true, null::uuid, false; end; $fn$;
+    grant execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, timestamptz, date, date) to anon;`);
+  const stray = await db.query(`
+    select count(*)::int as n from pg_proc p join pg_namespace ns on ns.oid = p.pronamespace
+    where ns.nspname = 'public' and p.proname = 'create_lead_with_idempotency'`);
+  check('PRE-RUN: stray 8-arg overload recreated (mirrors production)', stray.rows[0].n === 2);
+} catch (e) {
+  check('PRE-RUN: stray 8-arg overload recreated (mirrors production)', false, String(e.message || e));
+}
 try {
   await db.exec(mig);
   const again = await db.query(`
     select count(*)::int as n from pg_proc p join pg_namespace ns on ns.oid = p.pronamespace
     where ns.nspname = 'public' and p.proname = 'create_lead_with_idempotency'`);
-  check('017 re-runs cleanly (idempotent), still one overload', again.rows[0].n === 1);
+  check('017 re-run removes the stray overload (still exactly one)', again.rows[0].n === 1, `n=${again.rows[0].n}`);
+  check('017 re-run keeps anon denied on the 9-arg', (await priv('anon')) === false);
 } catch (e) {
-  check('017 re-runs cleanly (idempotent), still one overload', false, String(e.message || e));
+  check('017 re-run removes the stray overload (still exactly one)', false, String(e.message || e));
 }
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`);

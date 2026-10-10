@@ -2,11 +2,15 @@
 -- Billing state per workspace. Lemon Squeezy only — no Stripe fields.
 -- Every workspace gets plan 'free' at creation (§38–42).
 
-create type public.plan_type as enum ('free', 'pro', 'agency');
+do $$ begin
+  create type public.plan_type as enum ('free', 'pro', 'agency');
+exception when duplicate_object then null; end $$;
 
-create type public.subscription_status as enum (
-  'active', 'on_trial', 'paused', 'past_due', 'cancelled', 'expired', 'incomplete'
-);
+do $$ begin
+  create type public.subscription_status as enum (
+    'active', 'on_trial', 'paused', 'past_due', 'cancelled', 'expired', 'incomplete'
+  );
+exception when duplicate_object then null; end $$;
 
 create table if not exists public.subscriptions (
   id uuid primary key default gen_random_uuid(),

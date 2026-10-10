@@ -3,7 +3,9 @@
 -- ownership is explicit on BOTH workspace_id and form_id and integrity is
 -- enforced by a trigger (§23–29, §57).
 
-create type public.lead_status as enum ('new', 'contacted', 'qualified', 'converted', 'archived');
+do $$ begin
+  create type public.lead_status as enum ('new', 'contacted', 'qualified', 'converted', 'archived');
+exception when duplicate_object then null; end $$;
 
 create table if not exists public.leads (
   id uuid primary key default gen_random_uuid(),

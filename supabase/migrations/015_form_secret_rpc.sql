@@ -44,3 +44,15 @@ begin
   return query select v_form.workspace_id, v_form.public_id, v_form.secret_hash;
 end;
 $$;
+
+-- Only privileged roles may call this (created here, so revoke here).
+do $$ begin
+  revoke execute on function public.mint_form_secret(uuid, text, text) from public;
+exception
+  when others then raise notice 'revoke skipped: %', sqlerrm;
+end $$;
+do $$ begin
+  grant execute on function public.mint_form_secret(uuid, text, text) to service_role;
+exception
+  when others then raise notice 'grant skipped: %', sqlerrm;
+end $$;

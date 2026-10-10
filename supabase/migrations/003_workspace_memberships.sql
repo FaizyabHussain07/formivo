@@ -2,7 +2,9 @@
 -- Connects users to workspaces. Client membership alone never grants
 -- form access — client_form_access is the form-level gate (§16–17).
 
-create type public.workspace_member_role as enum ('owner', 'client');
+do $$ begin
+  create type public.workspace_member_role as enum ('owner', 'client');
+exception when duplicate_object then null; end $$;
 
 create table if not exists public.workspace_memberships (
   id uuid primary key default gen_random_uuid(),

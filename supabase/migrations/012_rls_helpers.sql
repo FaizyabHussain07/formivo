@@ -21,7 +21,7 @@ set search_path = ''
 as $$
   select exists (
     select 1
-    from workspace_memberships m
+    from public.workspace_memberships m
     where m.workspace_id = p_workspace_id
       and m.user_id = auth.uid()
   );
@@ -36,7 +36,7 @@ set search_path = ''
 as $$
   select exists (
     select 1
-    from workspace_memberships m
+    from public.workspace_memberships m
     where m.workspace_id = p_workspace_id
       and m.user_id = auth.uid()
       and m.role = 'owner'
@@ -52,13 +52,13 @@ set search_path = ''
 as $$
   select exists (
     select 1
-    from forms f
+    from public.forms f
     where f.id = p_form_id
       and (
         -- Workspace owner/developer
         exists (
           select 1
-          from workspace_memberships m
+          from public.workspace_memberships m
           where m.workspace_id = f.workspace_id
             and m.user_id = auth.uid()
             and m.role = 'owner'
@@ -66,7 +66,7 @@ as $$
         -- Explicitly assigned client viewer
         or exists (
           select 1
-          from client_form_access c
+          from public.client_form_access c
           where c.form_id = f.id
             and c.user_id = auth.uid()
         )
@@ -83,11 +83,11 @@ set search_path = ''
 as $$
   select exists (
     select 1
-    from forms f
+    from public.forms f
     where f.id = p_form_id
       and exists (
         select 1
-        from workspace_memberships m
+        from public.workspace_memberships m
         where m.workspace_id = f.workspace_id
           and m.user_id = auth.uid()
           and m.role = 'owner'

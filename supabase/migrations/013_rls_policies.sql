@@ -21,6 +21,25 @@ alter table public.usage_counters        enable row level security;
 alter table public.idempotency_keys      enable row level security;
 alter table public.webhook_events        enable row level security;
 
+-- Policies are dropped before creation so the file is safe to re-run
+-- after any partial application.
+
+do $$
+declare
+  r record;
+begin
+  for r in
+    select schemaname, tablename, policyname
+    from pg_policies
+    where schemaname = 'public'
+      and tablename in ('profiles','workspaces','workspace_memberships','forms','leads',
+                        'client_form_access','invitations','subscriptions',
+                        'usage_counters','idempotency_keys')
+  loop
+    execute format('drop policy if exists %I on %I.%I', r.policyname, r.schemaname, r.tablename);
+  end loop;
+end $$;
+
 -- ── profiles: users see/update only their own row ──────────────────
 create policy "profiles_select_own" on public.profiles
   for select using (auth.uid() = id);

@@ -2,7 +2,9 @@
 -- A form is a lead-collection endpoint. The secret is stored ONLY as a
 -- hash; plaintext exists solely in the create/rotate response (§18–22).
 
-create type public.form_status as enum ('active', 'archived');
+do $$ begin
+  create type public.form_status as enum ('active', 'archived');
+exception when duplicate_object then null; end $$;
 
 create table if not exists public.forms (
   id uuid primary key default gen_random_uuid(),

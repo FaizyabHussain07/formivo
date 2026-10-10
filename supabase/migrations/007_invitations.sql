@@ -1,7 +1,9 @@
 -- 007_invitations.sql
 -- Client invitations. Raw tokens are NEVER stored — only the hash (§33–37).
 
-create type public.invitation_status as enum ('pending', 'accepted', 'expired', 'revoked');
+do $$ begin
+  create type public.invitation_status as enum ('pending', 'accepted', 'expired', 'revoked');
+exception when duplicate_object then null; end $$;
 
 create table if not exists public.invitations (
   id uuid primary key default gen_random_uuid(),

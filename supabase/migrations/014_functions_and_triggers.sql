@@ -48,15 +48,11 @@ create trigger trg_lead_workspace_match
   before insert on public.leads
   for each row execute function public.enforce_lead_workspace_match();
 
--- ── Lock down published function executables: Supabase's default
---    "PUBLIC" grant would let upgraded tokens call sensitive definer
---    functions directly. Only the app roles should reach them. ────────
-revoke execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, text, date, date) from public;
-revoke execute on function public.mint_form_secret(uuid) from public;
-
 -- ── Atomic lead creation (§46–47: idempotency + lead + usage in ONE
 --    call and one transaction). Called by the submissions route with
 --    full inputs so the API layer never concatenates SQL. ─────────────
+-- NOTE: created BEFORE the revokes below (a revoke on a non-existent
+-- function raises 42883 and would abort the whole migration).
 create or replace function public.create_lead_with_idempotency(
   p_form_public_id text,
   p_request_hash text,
@@ -152,6 +148,16 @@ begin
 end;
 $$;
 
+-- ── Lock down published function executables: Supabase's default
+--    "PUBLIC" grant would let upgraded tokens call sensitive definer
+--    functions directly. Only the app roles should reach them.
+--    (mint_form_secret is created in migration 015 and revoked there.)
+do $$ begin
+  revoke execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, text, date, date) from public;
+exception
+  when others then raise notice 'revoke skipped: %', sqlerrm;
+end $$;
+
 -- ── Ledger reconciliation helper (§80): count leads directly. ──────
 create or replace function public.reconcile_workspace_usage(
   p_workspace_id uuid,
@@ -170,20 +176,39 @@ as $$
     and created_at < p_period_end;
 $$;
 
-revoke execute on function public.reconcile_workspace_usage(uuid, date, date) from public;
+do $$ begin
+  revoke execute on function public.reconcile_workspace_usage(uuid, date, date) from public;
+exception
+  when others then raise notice 'revoke skipped: %', sqlerrm;
+end $$;
 
--- ── API roles for the two public surfaces ──────────────────────────
 -- Submissions endpoint: executes create_lead_with_idempotency ONLY.
 -- It must NOT read leads, forms, or usage directly.
-create role api_submission noinherit login password null;
+do $$ begin
+  if not exists (select 1 from pg_roles where rolname = 'api_submission') then
+    create role api_submission noinherit login password null;
+  end if;
+end $$;
 revoke all on schema public from api_submission;
 grant usage on schema public to api_submission;
-grant execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, text, date, date) to api_submission;
-grant execute on function public.reconcile_workspace_usage(uuid, date, date) to api_submission;
+do $$ begin
+  grant execute on function public.create_lead_with_idempotency(text, text, jsonb, jsonb, text, text, date, date) to api_submission;
+exception
+  when others then raise notice 'grant skipped: %', sqlerrm;
+end $$;
+do $$ begin
+  grant execute on function public.reconcile_workspace_usage(uuid, date, date) to api_submission;
+exception
+  when others then raise notice 'grant skipped: %', sqlerrm;
+end $$;
 
 -- Webhook endpoint: runs under service role already; role exists for
 -- audit clarity and future fine-graining.
-create role api_webhook noinherit login password null;
+do $$ begin
+  if not exists (select 1 from pg_roles where rolname = 'api_webhook') then
+    create role api_webhook noinherit login password null;
+  end if;
+end $$;
 revoke all on schema public from api_webhook;
 grant usage on schema public to api_webhook;
 

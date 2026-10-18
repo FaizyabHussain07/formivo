@@ -110,9 +110,7 @@ export function NewFormFlow() {
 
           <div className="mt-6 flex flex-wrap gap-3">
             <Button
-              onClick={() => {
-                router.push('/dashboard');
-                router.refresh();
+              onClick={() => {              router.push(`/forms/${created.publicId}`);
               }}
             >
               Go to Dashboard

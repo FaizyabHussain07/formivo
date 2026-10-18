@@ -20,16 +20,16 @@ const steps = [
 
 const flow = ["Your Website", "Existing Form", "Formivo API", "Lead", "Formivo Dashboard"];
 
-const integrationSample = `await fetch("https://app.formivo.com/api/v1/forms/form_abc123/submissions", {
+const integrationSample = `await fetch("https://your-formivo-domain.com/api/v1/forms/frm_abc123/submissions", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
-    "Authorization": "Bearer FORM_SECRET",
+    "Authorization": "Bearer fmv_live_...",
   },
   body: JSON.stringify({
     data: { name: "John Doe", email: "john@example.com" },
   }),
-});`;
+});\n\n// → { "success": true, "leadId": "lead_123", "message": "Submission received." }`;
 
 const planOrder = ["free", "pro", "agency"] as const;
 

@@ -239,7 +239,7 @@ export default async function DashboardPage({
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold">Forms</h2>
               <Link href="/forms/new">
-                <Button size="sm">Create Form</Button>
+                <Button size="sm">New Form</Button>
               </Link>
             </div>
             <FormsTable forms={forms} />

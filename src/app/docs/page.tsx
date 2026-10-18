@@ -3,11 +3,11 @@ import { CodeBlock, Card } from "@/components/ui";
 
 export const metadata = { title: "Documentation" };
 
-const jsExample = `await fetch("https://app.formivo.com/api/v1/forms/form_abc123/submissions", {
+const jsExample = `await fetch("https://your-formivo-domain.com/api/v1/forms/frm_abc123/submissions", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
-    "Authorization": "Bearer FORM_SECRET",
+    "Authorization": "Bearer fmv_live_xxxxxxxxx",
   },
   body: JSON.stringify({
     data: {
@@ -20,9 +20,9 @@ const jsExample = `await fetch("https://app.formivo.com/api/v1/forms/form_abc123
 
 // → { "success": true, "leadId": "lead_123", "message": "Submission received." }`;
 
-const curlExample = `curl -X POST "https://app.formivo.com/api/v1/forms/form_abc123/submissions" \\
+const curlExample = `curl -X POST "https://your-formivo-domain.com/api/v1/forms/frm_abc123/submissions" \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer FORM_SECRET" \\
+  -H "Authorization: Bearer fmv_live_xxxxxxxxx" \\
   -d '{"data":{"name":"John Doe","email":"john@example.com"}}'`;
 
 const errorCodes: Array<[string, string]> = [

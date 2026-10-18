@@ -39,6 +39,19 @@ export default async function FormsPage() {
     .eq('workspace_id', ws.id)
     .order('created_at', { ascending: false });
 
+  // Fetch lead counts per form
+  const { data: allLeads } = await supabase
+    .from('leads')
+    .select('form_id')
+    .eq('workspace_id', ws.id);
+
+  const leadCounts: Record<string, number> = {};
+  if (allLeads) {
+    for (const lead of allLeads) {
+      leadCounts[lead.form_id] = (leadCounts[lead.form_id] ?? 0) + 1;
+    }
+  }
+
   const rows = (forms ?? []) as FormRow[];
 
   return (
@@ -75,11 +88,16 @@ export default async function FormsPage() {
                   href={`/forms/${form.public_id}`}
                   className="flex items-center justify-between rounded-md border border-border p-4 transition-colors hover:bg-surface-muted"
                 >
-                  <div>
-                    <p className="font-medium">{form.name}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      Created {new Date(form.created_at).toLocaleDateString()}
-                    </p>
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{form.name}</p>
+                    <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>
+                        Created {new Date(form.created_at).toLocaleDateString()}
+                      </span>
+                      <span className="text-subtle-foreground">
+                        {leadCounts[form.id] ?? 0} lead{(leadCounts[form.id] ?? 0) === 1 ? '' : 's'}
+                      </span>
+                    </div>
                   </div>
                   <Badge>{form.status}</Badge>
                 </Link>

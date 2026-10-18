@@ -1,75 +1,112 @@
-import Link from 'next/link';
+import { Suspense } from 'react';
 import { AppShell } from '@/components/app-shell';
 import { requireWorkspace, PageHeader } from '@/lib/session';
-import { Card, LeadStatusBadge } from '@/components/ui';
+import { LeadsClient } from './leads-client';
 
 export const metadata = { title: 'Leads' };
 
-export default async function LeadsPage() {
+function LeadsSkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="animate-pulse rounded-md border border-border bg-surface-muted p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="h-4 w-32 rounded bg-surface-muted" />
+            <div className="h-5 w-16 rounded bg-surface-muted" />
+          </div>
+          <div className="mt-2 flex gap-4">
+            <div className="h-3 w-24 rounded bg-surface-muted" />
+            <div className="h-3 w-32 rounded bg-surface-muted" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default async function LeadsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ search?: string; status?: string; form?: string; page?: string }>;
+}) {
   const { supabase, user, workspace } = await requireWorkspace();
+  const params = await searchParams;
 
-  const { data: leads } = await supabase
+  const search = params.search ?? '';
+  const statusFilter = params.status ?? '';
+  const formFilter = params.form ?? '';
+  const page = Math.max(1, parseInt(params.page ?? '1', 10));
+  const limit = 25;
+
+  const rangeStart = (page - 1) * limit;
+  const rangeEnd = page * limit - 1;
+
+  let query = supabase
     .from('leads')
-    .select('id, form_id, data, status, created_at, forms(name, public_id)')
+    .select('id, form_id, data, status, created_at, forms(name, public_id)', { count: 'exact' })
     .eq('workspace_id', workspace.id)
-    .order('created_at', { ascending: false })
-    .limit(50);
+    .order('created_at', { ascending: false });
 
-  const rows = (leads ?? []) as unknown as Array<{
+  // Range is applied after filters
+  const applyRange = (q: typeof query) => q.range(rangeStart, rangeEnd);
+
+  if (statusFilter && statusFilter !== 'all') {
+    query = query.eq('status', statusFilter);
+  }
+
+  if (formFilter) {
+    const { data: form } = await supabase
+      .from('forms')
+      .select('id')
+      .eq('public_id', formFilter)
+      .eq('workspace_id', workspace.id)
+      .single();
+    if (form) {
+      query = query.eq('form_id', form.id);
+    }
+  }
+
+  if (search) {
+    query = query.or(`data->>'name' like ${{ like: '%' + search + '%' }}, data->>'email' like ${{ like: '%' + search + '%' }}, data->>'full_name' like ${{ like: '%' + search + '%' }}`);
+  }
+
+  const leadsQuery = applyRange(query);
+  const [leadsResult, formsResult] = await Promise.all([
+    leadsQuery,
+    supabase.from('forms').select('id, public_id, name, status').eq('workspace_id', workspace.id).eq('status', 'active'),
+  ]);
+
+  const data = leadsResult.data;
+  const count = leadsResult.count;
+
+  const leads = (data ?? []) as unknown as Array<{
     id: string;
     data: Record<string, unknown> | null;
-    status: 'new' | 'contacted' | 'qualified' | 'converted' | 'archived';
+    status: string;
     created_at: string;
     forms: { name: string; public_id: string } | null;
   }>;
+
+  const total = count ?? 0;
+  const hasNext = page * limit < total;
 
   return (
     <AppShell user={user} workspaceName={workspace.name}>
       <PageHeader title="Leads" />
       <div className="px-5 py-6 lg:px-8 lg:py-8">
-        <Card className="p-6">
-          {rows.length === 0 ? (
-            <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
-              <p className="text-[15px] font-semibold">No leads yet</p>
-              <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                Once your form receives a submission, it will appear here.
-              </p>
-              <div className="mt-4">
-                <Link href="/forms" className="text-sm font-medium text-link hover:underline">
-                  Go to Forms →
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {rows.map((lead) => (
-                <Link
-                  key={lead.id}
-                  href={`/leads/${lead.id}`}
-                  className="block rounded-md border border-border p-4 transition-colors hover:bg-surface-muted"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">
-                        {String(lead.data?.name ?? 'Lead')}
-                        {lead.data?.email ? (
-                          <span className="ml-2 font-normal text-muted-foreground">
-                            {String(lead.data.email)}
-                          </span>
-                        ) : null}
-                      </p>
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                        {lead.forms?.name ?? 'Form'} ·{' '}
-                        {new Date(lead.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                    <LeadStatusBadge status={lead.status} />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </Card>
+        <Suspense fallback={<LeadsSkeleton />}>
+          <LeadsClient
+            leads={leads}
+            forms={(formsResult.data ?? []) as unknown as Array<{ id: string; public_id: string; name: string; status: string }>}
+            search={search}
+            statusFilter={statusFilter}
+            formFilter={formFilter}
+            page={page}
+            total={total}
+            limit={limit}
+            hasNext={hasNext}
+          />
+        </Suspense>
       </div>
     </AppShell>
   );

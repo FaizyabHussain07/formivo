@@ -16,26 +16,24 @@ export default async function FormAnalyticsPage({
 
   const { formPublicId } = await params;
 
-  // Verify access
   const { data: access, error: accessError } = await supabase
     .from('client_form_access')
-    .select('id, forms(id, name, public_id)')
+    .select('id, forms(id, name, public_id, status)')
     .eq('user_id', user.id)
     .eq('forms.public_id', formPublicId)
     .single();
 
   if (accessError || !access) redirect('/client');
 
-  if (!access) redirect('/client');
+  const formId = access.forms?.id;
+  const formName = access.forms?.name ?? 'Form';
+  const formStatus = access.forms?.status ?? 'active';
+  if (!formId) redirect('/client');
 
-  const form = access.forms;
-  if (!form) redirect('/client');
-
-  // Get analytics
   const { data: leads } = await supabase
     .from('leads')
     .select('id, status')
-    .eq('form_id', form.id);
+    .eq('form_id', formId);
 
   const allLeads = leads?.data ?? [];
   const totalLeads = allLeads.length;
@@ -47,19 +45,21 @@ export default async function FormAnalyticsPage({
 
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  const monthLeads = allLeads.filter((l) => new Date(l.created_at) >= monthStart).length;
+  const monthLeads = allLeads.filter(
+    (l) => new Date(l.created_at) >= monthStart,
+  ).length;
 
   const statusOrder = ['new', 'contacted', 'qualified', 'converted', 'archived'];
 
   return (
     <AppShell
       user={{ id: user.id, email: user.email }}
-      workspaceName={form.name}
+      workspaceName={formName}
     >
       <div className="border-b border-border bg-surface-muted/50 px-5 py-4 lg:px-8">
         <div className="flex items-center justify-between gap-3">
           <p className="text-lg font-semibold">Analytics</p>
-          <Badge>{form.name}</Badge>
+          <Badge>{formName}</Badge>
         </div>
       </div>
 
@@ -76,7 +76,7 @@ export default async function FormAnalyticsPage({
           <Card className="p-5">
             <p className="text-sm text-muted-foreground">Status</p>
             <p className="mt-1 flex items-center gap-2">
-              <Badge>{form.status}</Badge>
+              <Badge>{formStatus}</Badge>
             </p>
           </Card>
         </div>

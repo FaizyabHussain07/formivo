@@ -32,20 +32,6 @@ export async function requireWorkspace() {
   };
 }
 
-/** Standard authenticated page header used inside AppShell. */
-export function PageHeader({
-  title,
-  action,
-}: {
-  title: string;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="border-b border-border bg-surface-muted/50 px-5 py-4 lg:px-8">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-lg font-semibold">{title}</p>
-        {action}
-      </div>
-    </div>
-  );
-}
+// PageHeader now lives in the design system; re-exported so existing pages
+// keep a single import path while the shells converge on @/components/ui.
+export { PageHeader } from '@/components/ui';

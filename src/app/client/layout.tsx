@@ -1,21 +1,23 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { AppShell } from '@/components/app-shell';
-
-const NAV_ITEMS = [
-  { href: '/client', label: 'Overview' },
-  { href: '/client/leads', label: 'Leads' },
-  { href: '/client/analytics', label: 'Analytics' },
-];
-
-function isActive(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(href + '/');
-}
+import { createServerSupabaseClient } from '@/lib/db/server';
+import { ClientShell } from '@/components/client-shell';
 
 export default async function ClientLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.email) redirect('/sign-in');
+
+  return (
+    <ClientShell
+      user={{ id: user.id, email: user.email }}
+      workspaceName="Client Portal"
+    >
+      {children}
+    </ClientShell>
+  );
 }

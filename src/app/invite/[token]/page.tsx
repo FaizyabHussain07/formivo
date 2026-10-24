@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/db/server';
 import { createHash } from 'crypto';
 import { PageHeader } from '@/lib/session';
-import { AppShell } from '@/components/app-shell';
 import { Card, Button } from '@/components/ui';
 
 export const metadata = { title: 'Accept Invitation' };
@@ -28,7 +27,7 @@ export default async function InvitePage({
   if (inviteError || !invitation) {
     return (
       <div className="flex min-h-screen flex-col">
-        <AppShell user={{ id: '', email: '' }} workspaceName="">
+        <div className="min-h-screen">
           <div className="flex flex-1 items-center justify-center px-5">
             <Card className="p-8 text-center max-w-md">
               <h1 className="text-lg font-semibold tracking-tight">Invitation Not Found</h1>
@@ -40,7 +39,7 @@ export default async function InvitePage({
               </div>
             </Card>
           </div>
-        </AppShell>
+        </div>
       </div>
     );
   }
@@ -49,7 +48,7 @@ export default async function InvitePage({
   if (new Date(invitation.expires_at) < new Date()) {
     return (
       <div className="flex min-h-screen flex-col">
-        <AppShell user={{ id: '', email: '' }} workspaceName="">
+        <div className="min-h-screen">
           <div className="flex flex-1 items-center justify-center px-5">
             <Card className="p-8 text-center max-w-md">
               <h1 className="text-lg font-semibold tracking-tight">Invitation Expired</h1>
@@ -64,7 +63,7 @@ export default async function InvitePage({
               </div>
             </Card>
           </div>
-        </AppShell>
+        </div>
       </div>
     );
   }
@@ -77,7 +76,7 @@ export default async function InvitePage({
   if (invitation.status === 'revoked') {
     return (
       <div className="flex min-h-screen flex-col">
-        <AppShell user={{ id: '', email: '' }} workspaceName="">
+        <div className="min-h-screen">
           <div className="flex flex-1 items-center justify-center px-5">
             <Card className="p-8 text-center max-w-md">
               <h1 className="text-lg font-semibold tracking-tight">Invitation Revoked</h1>
@@ -91,7 +90,7 @@ export default async function InvitePage({
               </div>
             </Card>
           </div>
-        </AppShell>
+        </div>
       </div>
     );
   }
@@ -109,12 +108,12 @@ export default async function InvitePage({
     if (userEmail?.toLowerCase() !== invitation.email.toLowerCase()) {
       return (
         <div className="flex min-h-screen flex-col">
-          <AppShell user={{ id: user.id, email: user.email ?? '' }} workspaceName="">
+          <div className="min-h-screen">
             <div className="flex flex-1 items-center justify-center px-5">
               <Card className="p-8 text-center max-w-md">
                 <h1 className="text-lg font-semibold tracking-tight">Email Mismatch</h1>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  This invitation was sent to <strong>{invitation.email}</strong>, but you're signed in with a different email.
+                  This invitation was sent to <strong>{invitation.email}</strong>, but you&apos;re signed in with a different email.
                 </p>
                 <div className="mt-6 flex gap-3">
                   <Button variant="secondary" onClick={() => redirect('/sign-in')}>
@@ -123,7 +122,7 @@ export default async function InvitePage({
                 </div>
               </Card>
             </div>
-          </AppShell>
+          </div>
         </div>
       );
     }
@@ -159,7 +158,7 @@ export default async function InvitePage({
   // Not authenticated — show sign in/up prompt
   return (
     <div className="flex min-h-screen flex-col">
-      <AppShell user={{ id: '', email: '' }} workspaceName="">
+      <div className="min-h-screen">
         <div className="flex flex-1 items-center justify-center px-5">
           <Card className="p-8 text-center max-w-md">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -182,7 +181,7 @@ export default async function InvitePage({
             </div>
           </Card>
         </div>
-      </AppShell>
+      </div>
     </div>
   );
 }

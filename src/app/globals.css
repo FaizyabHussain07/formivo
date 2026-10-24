@@ -1,28 +1,107 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────────
-   Formivo design tokens (PRD §52, §53)
-   Light, restrained, Linear/Vercel/Resend-grade developer SaaS.
-   ───────────────────────────────────────────────────────────────── */
+   Formivo design tokens.
+
+   Source of truth: product-documentations/16-brand-identity.md plus the
+   mandatory brand palette (Dark Ink / Teal / Mint / Slate / Light Slate /
+   Off-white / White). The same values are mirrored in
+   @/components/brand-tokens for use in TSX. No component may hardcode hex.
+
+   Two shells share one brand:
+   - dark default  → developer dashboard + client portal (ink surfaces)
+   - .theme-light  → marketing site + auth screens (off-white surfaces)
+
+   Both themes define every semantic variable, so a token is never undefined.
+   ──────────────────────────────────────────────────────────────── */
 
 :root {
-  --background: #ffffff;
-  --foreground: #18181b;
+  color-scheme: dark;
 
-  --surface: #ffffff;
-  --surface-muted: #fafafa;
+  /* Brand */
+  --brand-teal: #0f766e;
+  --brand-teal-hover: #115e59;
+  --brand-mint: #2dd4bf;
 
-  --border: #e4e4e7;
-  --border-strong: #d4d4d8;
+  /* Surfaces (dark) */
+  --background: #0b1220;      /* Dark Ink */
+  --foreground: #f8fafc;
+  --surface: #111827;
+  --surface-muted: #172033;
+  --surface-elevated: #1e293b;
+  --border: #1e293b;          /* Slate */
+  --border-strong: #334155;
 
-  --muted-foreground: #52525b;
-  --subtle-foreground: #a1a1aa;
+  /* Text (dark) */
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --muted-foreground: #94a3b8; /* Light Slate — secondary text on dark */
+  --subtle-foreground: #64748b;
+  --disabled-foreground: #475569;
 
-  --primary: #2DD4BF;
-  --primary-hover: #14B8A6;
-  --primary-foreground: #0B0D10;
+  /* Interactive: mint carries the active role on dark surfaces */
+  --primary: #2dd4bf;
+  --primary-hover: #5eead4;
+  --primary-foreground: #0b1220;
+  --primary-solid: #0f766e;
+  --primary-solid-hover: #115e59;
+  --primary-solid-foreground: #ffffff;
 
-  --link: #2DD4BF;
+  /* Semantic */
+  --success: #16a34a;
+  --success-soft: rgba(22, 163, 74, 0.14);
+  --warning: #d97706;
+  --warning-soft: rgba(217, 119, 6, 0.14);
+  --danger: #dc2626;
+  --danger-soft: rgba(220, 38, 38, 0.14);
+  --info: #2563eb;
+  --info-soft: rgba(37, 99, 235, 0.14);
+
+  --ring: color-mix(in srgb, var(--primary) 55%, transparent);
+
+  /* Radius scale (restrained: 4–16px) */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* Shadows — borders do the structural work */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 6px 16px rgba(2, 6, 23, 0.45);
+  --shadow-lg: 0 18px 40px rgba(2, 6, 23, 0.55);
+
+  /* Type */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+}
+
+.theme-light {
+  color-scheme: light;
+
+  /* Surfaces (light) */
+  --background: #f8fafc;      /* Off-white */
+  --foreground: #0f172a;
+  --surface: #ffffff;         /* White */
+  --surface-muted: #f1f5f9;
+  --surface-elevated: #ffffff;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  /* Text (light) */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --muted-foreground: #64748b;
+  --subtle-foreground: #94a3b8;
+  --disabled-foreground: #94a3b8;
+
+  /* Interactive: teal carries the active role on light surfaces */
+  --primary: #0f766e;
+  --primary-hover: #115e59;
+  --primary-foreground: #ffffff;
+  --primary-solid: #0f766e;
+  --primary-solid-hover: #115e59;
+  --primary-solid-foreground: #ffffff;
 
   --success: #16a34a;
   --success-soft: #f0fdf4;
@@ -30,47 +109,14 @@
   --warning-soft: #fffbeb;
   --danger: #dc2626;
   --danger-soft: #fef2f2;
+  --info: #2563eb;
+  --info-soft: #eff6ff;
 
-  --ring: #a5b4fc;
+  --ring: color-mix(in srgb, var(--primary) 35%, transparent);
 
-  --radius: 8px;
-
-  --shadow-sm: 0 1px 2px rgba(24, 24, 27, 0.06);
-  --shadow-md: 0 4px 12px rgba(24, 24, 27, 0.08);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #09090b;
-    --foreground: #fafafa;
-
-    --surface: #111113;
-    --surface-muted: #18181b;
-
-    --border: #27272a;
-    --border-strong: #3f3f46;
-
-    --muted-foreground: #a1a1aa;
-    --subtle-foreground: #71717a;
-
-    --primary: #14B8A6;
-    --primary-hover: #0D9488;
-    --primary-foreground: #0B0D10;
-
-    --link: #14B8A6;
-
-    --success: #4ade80;
-    --success-soft: rgba(22, 163, 74, 0.12);
-    --warning: #fbbf24;
-    --warning-soft: rgba(217, 119, 6, 0.12);
-    --danger: #f87171;
-    --danger-soft: rgba(220, 38, 38, 0.12);
-
-    --ring: #0D9488;
-
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
-  }
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 6px 16px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 18px 40px rgba(15, 23, 42, 0.12);
 }
 
 @theme inline {
@@ -78,33 +124,60 @@
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
   --color-surface-muted: var(--surface-muted);
+  --color-surface-elevated: var(--surface-elevated);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
+
   --color-muted-foreground: var(--muted-foreground);
   --color-subtle-foreground: var(--subtle-foreground);
+  --color-disabled-foreground: var(--disabled-foreground);
+
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
-  --color-link: var(--link);
+  --color-primary-solid: var(--primary-solid);
+  --color-primary-solid-hover: var(--primary-solid-hover);
+  --color-primary-solid-foreground: var(--primary-solid-foreground);
+  --color-brand-teal: var(--brand-teal);
+  --color-brand-mint: var(--brand-mint);
+
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
   --color-ring: var(--ring);
 
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
 
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  /* Type scale */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-display: 3.25rem;
+  --text-display--line-height: 1.05;
+  --text-display--font-weight: 600;
 }
 
 @layer base {
   html {
-    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-sans);
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   body {
@@ -112,49 +185,70 @@
     color: var(--foreground);
     font-size: 14px;
     line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    letter-spacing: -0.015em;
+    text-wrap: balance;
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--primary) 20%, transparent);
+    background: color-mix(in srgb, var(--primary) 30%, transparent);
   }
 
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+
+  input, button, textarea, select {
+    font: inherit;
+  }
+
+  code, pre, kbd, samp {
+    font-family: var(--font-mono);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
+    *, *::before, *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
   }
 }
 
 @layer components {
+  /* Page container — 1200px content width, 32px gutters on desktop */
   .container-page {
     width: 100%;
-    max-width: 1152px;
+    max-width: 1200px;
     margin-inline: auto;
     padding-inline: 20px;
   }
 
   @media (min-width: 768px) {
-    .container-page {
-      padding-inline: 32px;
-    }
+    .container-page { padding-inline: 32px; }
   }
 
+  /* Authored content column (docs, legal, long copy) */
+  .container-narrow {
+    width: 100%;
+    max-width: 760px;
+    margin-inline: auto;
+    padding-inline: 20px;
+  }
+
+  /* Standard elevated surface */
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius-lg, 12px);
+    border-radius: var(--radius-lg);
   }
 
+  /* Neutral pill badge */
   .badge {
     display: inline-flex;
     align-items: center;
@@ -164,9 +258,98 @@
     border-radius: 999px;
     border: 1px solid var(--border);
     background: var(--surface-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
     font-weight: 500;
     line-height: 1;
     white-space: nowrap;
+  }
+
+  /* Status dot — colour is always paired with a text label */
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: currentColor;
+    flex: none;
+  }
+
+  /* Data table — dense, scannable, sticky header */
+  .table-base {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+  }
+  .table-base thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+  }
+  .table-base tbody td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .table-base tbody tr:last-child td { border-bottom: 0; }
+  .table-base tbody tr:hover td { background: var(--surface-muted); }
+
+  /* Skeleton shimmer */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: var(--surface-muted);
+    border-radius: var(--radius-sm);
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--foreground) 6%, transparent),
+      transparent
+    );
+    animation: skeleton-shimmer 1.4s ease-out infinite;
+  }
+  @keyframes skeleton-shimmer {
+    100% { transform: translateX(100%); }
+  }
+
+  /* Subtle scrollbars for dark data surfaces */
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  .scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scroll-thin::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 999px;
+  }
+  .scroll-thin::-webkit-scrollbar-track { background: transparent; }
+
+  /* Connected-line motif — the logo's structural signature, used sparingly
+     as a decorative rule. Always aria-hidden. */
+  .motif-rule {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--border-strong) 15%,
+      var(--border-strong) 85%,
+      transparent
+    );
   }
 }

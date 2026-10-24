@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/db/server';
-import { AppShell } from '@/components/app-shell';
 import { Card, Badge } from '@/components/ui';
 
 export const metadata = { title: 'Analytics' };
@@ -65,7 +64,7 @@ export default async function FormAnalyticsPage({
   const statusOrder = ['new', 'contacted', 'qualified', 'converted', 'archived'];
 
   return (
-    <AppShell user={{ id: user.id, email: user.email }} workspaceName={formName}>
+    <>
       <div className="border-b border-border bg-surface-muted/50 px-5 py-4 lg:px-8">
         <div className="flex items-center justify-between gap-3">
           <p className="text-lg font-semibold">Analytics</p>
@@ -123,6 +122,6 @@ export default async function FormAnalyticsPage({
           )}
         </Card>
       </div>
-    </AppShell>
+    </>
   );
 }

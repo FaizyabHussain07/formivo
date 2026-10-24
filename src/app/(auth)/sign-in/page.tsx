@@ -3,6 +3,7 @@
 import { Suspense, useState, useTransition } from 'react';
 import { createBrowserSupabaseClient } from '@/lib/supabase';
 import { Input, Label, Button } from '@/components/ui';
+import { safeNextPath } from '@/lib/auth-errors';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function SignInPage() {
@@ -23,6 +24,9 @@ function SignInForm() {
   const registered = searchParams.get('registered');
   const confirmed = searchParams.get('confirmed');
   const authError = searchParams.get('error');
+  /* Invitation links pass ?next= so the client lands back on acceptance. */
+  const nextHref = safeNextPath(searchParams.get('next'));
+  const nextQuery = nextHref === '/dashboard' ? '' : `?next=${encodeURIComponent(nextHref)}`;
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +48,7 @@ function SignInForm() {
         return;
       }
 
-      router.push('/dashboard');
+      router.push(nextHref);
       router.refresh();
     });
   };
@@ -113,7 +117,7 @@ function SignInForm() {
             Forgot password?
           </a>
           <a
-            href="/sign-up"
+            href={`/sign-up${nextQuery}`}
             className="text-link font-medium hover:underline"
           >
             Create account

@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/db/server';
-import { AppShell } from '@/components/app-shell';
 import { Card, Badge } from '@/components/ui';
 
 export const metadata = { title: 'Analytics' };
@@ -62,7 +61,7 @@ export default async function ClientAnalyticsPage() {
   }
 
   return (
-    <AppShell user={{ id: user.id, email: user.email }} workspaceName="Client Portal">
+    <>
       <div className="border-b border-border bg-surface-muted/50 px-5 py-4 lg:px-8">
         <p className="text-lg font-semibold">Analytics</p>
       </div>
@@ -73,7 +72,7 @@ export default async function ClientAnalyticsPage() {
             <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
               <p className="text-[15px] font-semibold">No forms assigned</p>
               <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                Your workspace owner hasn't assigned any forms to you yet.
+                Your workspace owner hasn&apos;t assigned any forms to you yet.
               </p>
             </div>
           </Card>
@@ -108,6 +107,6 @@ export default async function ClientAnalyticsPage() {
           </>
         )}
       </div>
-    </AppShell>
+    </>
   );
 }

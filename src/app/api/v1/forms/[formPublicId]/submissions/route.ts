@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createHash, timingSafeEqual } from 'crypto';
 import { PLANS, DEFAULT_PLAN, type PlanId } from '@/lib/plans';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 /**
  * POST /api/v1/forms/{formPublicId}/submissions  (PRD §23, §58–62)
@@ -24,27 +25,7 @@ const IDEMPOTENCY_TTL_HOURS = 24;
 // loops/bots at bay without external infra (spec allows any V1-compatible
 // strategy; a shared store can replace this later without API changes).
 const RATE_LIMIT_MAX = 60;
-const rateBuckets = new Map<string, { count: number; resetAt: number }>();
-
-function checkRateLimit(ip: string): { allowed: boolean; retryAfterSec: number } {
-  const now = Date.now();
-  const bucket = rateBuckets.get(ip);
-  if (!bucket || bucket.resetAt <= now) {
-    rateBuckets.set(ip, { count: 1, resetAt: now + 60_000 });
-    // Opportunistic cleanup so the map cannot grow unbounded.
-    if (rateBuckets.size > 10_000) {
-      for (const [key, value] of rateBuckets) {
-        if (value.resetAt <= now) rateBuckets.delete(key);
-      }
-    }
-    return { allowed: true, retryAfterSec: 0 };
-  }
-  if (bucket.count >= RATE_LIMIT_MAX) {
-    return { allowed: false, retryAfterSec: Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)) };
-  }
-  bucket.count += 1;
-  return { allowed: true, retryAfterSec: 0 };
-}
+const RATE_WINDOW_MS = 60_000;
 
 // ── Structured error responses (PRD §47, §58) ──────────────────────
 type ErrorCode =
@@ -185,7 +166,7 @@ export async function POST(
       request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
       request.headers.get('x-real-ip') ||
       'unknown';
-    const rate = checkRateLimit(ip);
+    const rate = checkRateLimit(ip, { max: RATE_LIMIT_MAX, windowMs: RATE_WINDOW_MS });
     if (!rate.allowed) {
       return withCors(
         apiError(

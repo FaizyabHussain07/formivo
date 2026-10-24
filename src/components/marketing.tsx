@@ -1,79 +1,217 @@
-import Link from "next/link";
-import { APP_URL } from "@/lib/app-config";
-import { LinkButton } from "@/components/ui";
+'use client';
 
-const nav = [
-  { href: "/pricing", label: "Pricing" },
-  { href: "/docs", label: "Docs" },
+import Link from 'next/link';
+import { useState } from 'react';
+import { Menu, X } from 'lucide-react';
+import { Logo } from '@/components/logo';
+import { LinkButton } from '@/components/ui';
+import { APP_URL } from '@/lib/app-config';
+
+/**
+ * Public site navigation and footer (marketing experience only).
+ * Auth screens use a slimmer variant so the sign-in flow stays focused.
+ */
+
+const NAV = [
+  { href: '/features', label: 'Features' },
+  { href: '/how-it-works', label: 'How It Works' },
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/docs', label: 'Docs' },
 ];
 
-export function MarketingHeader() {
+const FOOTER_PRODUCT = [
+  { href: '/features', label: 'Features' },
+  { href: '/how-it-works', label: 'How It Works' },
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/docs', label: 'Documentation' },
+];
+
+const FOOTER_LEGAL = [
+  { href: '/privacy', label: 'Privacy Policy' },
+  { href: '/terms', label: 'Terms of Service' },
+];
+
+export function MarketingHeader({ user }: { user?: { email: string } | null }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
-      <div className="container-page flex h-14 items-center justify-between">
+      <div className="container-page flex h-14 items-center justify-between gap-4">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-foreground">
-            <svg width="22" height="22" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M14 4h10c4.418 0 8 3.582 8 8v12c0 4.418-3.582 8-8 8h-2" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary"/>
-              <path d="M14 24h22c3.314 0 6-2.686 6-6V18" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary"/>
-              <circle cx="14" cy="40" r="3" fill="currentColor" className="text-primary"/>
-              <circle cx="34" cy="14" r="3" fill="currentColor" className="text-primary"/>
-              <circle cx="24" cy="24" r="3" fill="currentColor" className="text-primary"/>
-            </svg>
-            Formivo
+          <Link
+            href="/"
+            className="flex items-center text-foreground"
+            aria-label="Formivo home"
+          >
+            <Logo variant="wordmark" />
           </Link>
-          <nav className="hidden items-center gap-6 md:flex">
-            {nav.map((item) => (
+
+          <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
+            {NAV.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                className="rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground"
               >
                 {item.label}
               </Link>
             ))}
           </nav>
         </div>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/sign-in"
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Sign in
-          </Link>
-          <LinkButton href="/sign-up" size="sm">
-            Start Free
-          </LinkButton>
+
+        <div className="hidden items-center gap-2 md:flex">
+          {user ? (
+            <LinkButton href="/dashboard" size="sm">
+              Open dashboard
+            </LinkButton>
+          ) : (
+            <>
+              <Link
+                href="/sign-in"
+                className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground"
+              >
+                Log in
+              </Link>
+              <LinkButton href="/sign-up" size="sm">
+                Get started
+              </LinkButton>
+            </>
+          )}
         </div>
+
+        <MobileMenu user={user} />
       </div>
     </header>
   );
 }
 
+/* Mobile navigation — disclosure pattern, keyboard and screen-reader usable. */
+function MobileMenu({ user }: { user?: { email: string } | null }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="md:hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-label={open ? 'Close menu' : 'Open menu'}
+        className="rounded-md border border-border p-2 text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground"
+      >
+        {open ? <X className="h-4 w-4" aria-hidden="true" /> : <Menu className="h-4 w-4" aria-hidden="true" />}
+      </button>
+
+      {open && (
+        <div className="absolute inset-x-0 top-14 border-b border-border bg-background shadow-md">
+          <nav className="container-page flex flex-col gap-1 py-4" aria-label="Mobile">
+            {NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setOpen(false)}
+                className="rounded-md px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground"
+              >
+                {item.label}
+              </Link>
+            ))}
+            <div className="mt-3 flex flex-col gap-2 border-t border-border pt-4">
+              {user ? (
+                <LinkButton href="/dashboard" onClick={() => setOpen(false)}>
+                  Open dashboard
+                </LinkButton>
+              ) : (
+                <>
+                  <Link
+                    href="/sign-in"
+                    onClick={() => setOpen(false)}
+                    className="inline-flex h-9 items-center justify-center rounded-md border border-border-strong bg-surface px-4 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted"
+                  >
+                    Log in
+                  </Link>
+                  <LinkButton href="/sign-up" onClick={() => setOpen(false)}>
+                    Get started
+                  </LinkButton>
+                </>
+              )}
+            </div>
+          </nav>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function MarketingFooter() {
   return (
-    <footer className="border-t border-border py-10">
-      <div className="container-page flex flex-col items-center justify-between gap-4 text-sm text-muted-foreground md:flex-row">
-        <p>
-          © {new Date().getFullYear()} Formivo —{" "}
-          <span className="text-subtle-foreground">form-to-lead infrastructure</span>
-        </p>
-        <nav className="flex items-center gap-6">
-          <Link href="/pricing" className="transition-colors hover:text-foreground">
-            Pricing
-          </Link>
-          <Link href="/docs" className="transition-colors hover:text-foreground">
-            Documentation
-          </Link>
-          <Link href="/privacy" className="transition-colors hover:text-foreground">
-            Privacy
-          </Link>
-          <Link href="/terms" className="transition-colors hover:text-foreground">
-            Terms
-          </Link>
-        </nav>
+    <footer className="border-t border-border bg-surface/50">
+      <div className="container-page py-12">
+        <div className="grid gap-10 md:grid-cols-[1.5fr_1fr_1fr]">
+          <div className="max-w-sm">
+            <Link href="/" className="inline-flex text-foreground" aria-label="Formivo home">
+              <Logo variant="wordmark" />
+            </Link>
+            <p className="mt-4 text-[13px] leading-relaxed text-muted-foreground">
+              Formivo is a developer-first form backend: connect the website forms you
+              already have, collect every submission as a lead, and share a read-only
+              dashboard with your clients.
+            </p>
+            <p className="mt-4 text-[13px] text-subtle-foreground">
+              Forms to leads. Leads to clients.
+            </p>
+          </div>
+
+          <nav aria-label="Product">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-subtle-foreground">
+              Product
+            </p>
+            <ul className="mt-3 space-y-2">
+              {FOOTER_PRODUCT.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <nav aria-label="Legal">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-subtle-foreground">
+              Legal
+            </p>
+            <ul className="mt-3 space-y-2">
+              {FOOTER_LEGAL.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <a
+                  href={APP_URL}
+                  className="text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  formivo.faizyab.me
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+
+        <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-subtle-foreground">
+            © {new Date().getFullYear()} Formivo. All rights reserved.
+          </p>
+          <p className="text-xs text-subtle-foreground">
+            {APP_URL.replace(/^https?:\/\//, '')}
+          </p>
+        </div>
       </div>
-      <p className="sr-only">{APP_URL}</p>
     </footer>
   );
 }

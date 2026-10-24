@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/db/server';
-import { AppShell } from '@/components/app-shell';
-import Link from 'next/link';
 import { Card, Badge } from '@/components/ui';
+import Link from 'next/link';
 
 export const metadata = { title: 'Lead' };
 
@@ -85,7 +84,7 @@ export default async function ClientLeadDetailPage({
   );
 
   return (
-    <AppShell user={{ id: user.id, email: user.email }} workspaceName="">
+    <>
       <div className="border-b border-border bg-surface-muted/50 px-5 py-4 lg:px-8">
         <div className="flex items-center gap-3">
           <Link
@@ -159,6 +158,6 @@ export default async function ClientLeadDetailPage({
           )}
         </Card>
       </div>
-    </AppShell>
+    </>
   );
 }

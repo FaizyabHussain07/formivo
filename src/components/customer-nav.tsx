@@ -86,6 +86,20 @@ export function CustomerNav({ user, workspaceName }: CustomerNavProps) {
                   >
                     Settings
                   </Link>
+                  <Link
+                    href="/billing"
+                    className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface-muted"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Billing
+                  </Link>
+                  <Link
+                    href="/billing"
+                    className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface-muted"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Billing
+                  </Link>
                   <button
                     type="button"
                     onClick={() => {

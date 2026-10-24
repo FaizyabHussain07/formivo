@@ -3,7 +3,6 @@ import { requireWorkspace } from '@/lib/session';
 import { PLANS, PLAN_IDS, type PlanId } from '@/lib/plans';
 
 export const metadata = { title: 'Billing' };
-
 export default async function BillingPage() {
   const { supabase, user, workspace } = await requireWorkspace();
 
@@ -20,7 +19,11 @@ export default async function BillingPage() {
     <>
       <PageHeader title="Billing" description="Your plan, its limits, and what changes when you upgrade." />
       <div className="px-5 py-6 lg:px-8 lg:py-8">
-        <Card className="p-6">
+        <p className="text-sm text-muted-foreground">
+          Checkout and plan changes arrive with the Lemon Squeezy integration
+          (next build phase). The limits below are already enforced server-side.
+        </p>
+        <Card className="mt-3 p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm text-muted-foreground">Current plan</p>
@@ -36,14 +39,9 @@ export default async function BillingPage() {
               Upgrade
             </Button>
           </div>
-          <p className="mt-4 text-xs text-subtle-foreground">
-            Checkout and plan changes activate with the Lemon Squeezy
-            integration (next billing phase). Limits below are already enforced
-            server-side.
-          </p>
         </Card>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
           {PLAN_IDS.map((id) => {
             const plan = PLANS[id];
             const active = id === currentPlan;

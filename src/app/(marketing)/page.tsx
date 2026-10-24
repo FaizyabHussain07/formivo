@@ -25,12 +25,12 @@ export const metadata = {
 const STEPS = [
   {
     title: 'Create a form connection',
-    body: 'Name your form in Formivo. You get an endpoint URL and a form secret — that is the whole setup.',
+    body: 'Name your form in Formivo. You get an endpoint URL you can point any existing form at.',
     icon: FileText,
   },
   {
     title: 'Point your existing form at it',
-    body: 'Keep your current HTML, React, or WordPress form. Send its payload to the endpoint as JSON.',
+    body: 'Keep your current HTML, React, or WordPress form. Send its payload to the endpoint as JSON — the docs include copy-paste examples.',
     icon: Terminal,
   },
   {
@@ -175,15 +175,15 @@ export default function HomePage() {
               <code className="rounded border border-border bg-surface-muted px-1 py-0.5 font-mono text-[12px] text-foreground">
                 data
               </code>{' '}
-              object with a Bearer form secret, so wire your form&apos;s submit
-              event (or proxy it through your server) and the submission is stored
-              as a lead.
+              object with an Authorization header carrying a per-form form secret, so
+              wire your form&apos;s submit event (or proxy it through your server) and the
+              submission is stored as a lead.
             </p>
 
             <div className="mt-6 space-y-3">
               {[
                 'POST endpoint unique to each form',
-                'Secret compared in constant time, stored as a hash',
+                'Form secret compared in constant time and stored as a hash',
                 '100 KB payload cap and per-IP rate limiting',
                 'Idempotency-Key supported for safe retries',
               ].map((line) => (

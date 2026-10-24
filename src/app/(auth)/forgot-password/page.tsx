@@ -18,9 +18,13 @@ export default function ForgotPasswordPage() {
 
     startTransition(async () => {
       const supabase = createBrowserSupabaseClient();
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/auth/callback`,
-      });
+      const origin =
+        typeof window !== 'undefined' && window.location.origin
+          ? window.location.origin.replace(/\/$/, '')
+          : 'https://formivo.faizyab.me';            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: '/auth/callback',
+          });
+
 
       if (error) {
         setError(error.message);

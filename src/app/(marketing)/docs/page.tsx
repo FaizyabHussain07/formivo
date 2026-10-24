@@ -134,7 +134,9 @@ export default function DocsPage() {
         <Section id="introduction" title="Introduction">
           <p>
             Formivo receives submissions from forms you already built and stores them as
-            leads. You do not rebuild your form — you point it at a Formivo endpoint.
+            leads. You do not rebuild your form — you point it at a Formivo endpoint and
+            send each submission with a per-form <strong>form secret</strong> in the Authorization
+            header.
           </p>
           <p>
             One endpoint handles it all: native HTML forms, JavaScript{' '}

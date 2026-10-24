@@ -12,7 +12,8 @@ import {
  * POST /api/f/[formId]  →  https://formivo.faizyab.me/api/f/YOUR_FORM_ID
  *
  * The plain-HTML integration surface: a developer only has to set the form's
- * `action` and `method="POST"`. No SDK, no visitor login, no custom backend.
+ * `action` to this URL and `method="POST"`. No SDK, no visitor login, no custom backend.
+ * HEAD and GET both return 405 to avoid confusion with form preview behaviour.
  *
  * Accepted content types:
  *   application/x-www-form-urlencoded   (native HTML form post)
@@ -260,6 +261,13 @@ function isHoneypotTripped(fields: ParsedFields): boolean {
 export function GET() {
   return NextResponse.json(
     { success: false, error: { code: 'INVALID_REQUEST', message: 'Use POST to submit this form.' } },
+    { status: 405, headers: { allow: 'POST' } },
+  );
+}
+
+export function HEAD() {
+  return NextResponse.json(
+    { success: false, error: { code: 'INVALID_REQUEST', message: 'This endpoint only accepts POST.' } },
     { status: 405, headers: { allow: 'POST' } },
   );
 }

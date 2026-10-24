@@ -70,6 +70,14 @@ export function DashboardShell({ user, workspaceName, children }: DashboardShell
       <CustomerNav user={user} workspaceName={workspaceName} />
 
       <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 flex-col border-r border-border bg-surface lg:flex">
+        <div className="flex flex-col gap-1 border-b border-border px-3 py-3">
+          <div className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground">
+            <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
+              {user.email.charAt(0).toUpperCase()}
+            </span>
+            <span className="truncate font-medium text-foreground">{workspaceName}</span>
+          </div>
+        </div>
         <div className="flex-1 overflow-y-auto px-3 py-4">{sidebar}</div>
         <div className="flex flex-col gap-1 border-t border-border px-3 py-3">
           <Separator />
@@ -82,7 +90,7 @@ export function DashboardShell({ user, workspaceName, children }: DashboardShell
             <span className="h-7 w-7 rounded-full bg-primary/10 text-xs font-medium text-primary flex items-center justify-center">
               {user.email.charAt(0).toUpperCase()}
             </span>
-            <span className="truncate">{workspaceName}</span>
+            <span className="truncate">Account</span>
           </button>
 
           {userMenuOpen && (

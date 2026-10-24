@@ -11,6 +11,19 @@ import { PRODUCTION_URL } from '@/lib/app-config';
  * creates the membership + form access rows atomically. This handler only
  * authenticates, normalizes input and maps the function's outcome to a response.
  */
+
+/**
+ * Blazingly trimmed: avoid JSX-like interpolation in raw route code.
+ * Use production URL unless a live app URL env is explicitly set.
+ */
+function publicBaseUrl() {
+  const env = process.env.NEXT_PUBLIC_APP_URL;
+  if (typeof env === 'string' && env.length > 0) {
+    return env.replace(/\/$/, '');
+  }
+  return PRODUCTION_URL;
+}
+
 const ERROR_MAP: Record<string, { code: string; status: number; message: string }> = {
   invitation_not_found: { code: 'NOT_FOUND', status: 404, message: 'This invitation could not be found.' },
   invitation_revoked: { code: 'FORBIDDEN', status: 403, message: 'This invitation has been revoked.' },
@@ -20,6 +33,10 @@ const ERROR_MAP: Record<string, { code: string; status: number; message: string 
   email_unverified: { code: 'FORBIDDEN', status: 403, message: 'Confirm your email address before accepting this invitation.' },
   not_authenticated: { code: 'UNAUTHORIZED', status: 401, message: 'You must be signed in to accept an invitation.' },
 };
+
+
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || PRODUCTION_URL;
 
 /** Postgres raises these exact words; anything else is an internal failure. */
 function mapError(message: string) {
@@ -91,11 +108,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || PRODUCTION_URL;
-
   return NextResponse.json({
     success: true,
     message: 'Invitation accepted.',
-    redirectUrl: `${appUrl}/client/forms/${formId}`,
+    redirectUrl: `${PRODUCTION_URL}/client/forms/${formId}`,
   });
 }

@@ -19,7 +19,7 @@ export default function OnboardingPage() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-8 lg:flex-row lg:max-w-2xl">
+          <div className="flex flex-col gap-6 lg:flex-row lg:max-w-2xl">
             <Card className="flex flex-1 flex-col gap-6 p-6">
               <WorkspaceForm />
             </Card>

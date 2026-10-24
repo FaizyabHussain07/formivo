@@ -26,10 +26,9 @@ type ActionTarget =
 /** Fallback link when the invitation email could not be delivered. */
 function InviteLinkFallback({ inviteUrl }: { inviteUrl: string }) {
   const [copied, setCopied] = useState(false);
-  return (
-    <div className="mt-2 space-y-1.5">
+  return (      <div className="mt-2 space-y-1.5">
       <p className="text-xs font-medium text-muted-foreground">
-        Invitation link (share it with your client manually):
+        Invitation link — share it with your client:
       </p>
       <div className="flex items-center gap-2">
         <code className="min-w-0 flex-1 truncate rounded-md border border-border bg-surface-muted px-3 py-2 font-mono text-xs">
@@ -48,7 +47,7 @@ function InviteLinkFallback({ inviteUrl }: { inviteUrl: string }) {
         </Button>
       </div>
       <p className="text-xs text-subtle-foreground">
-        Only the invited email address can accept it.
+        This link is only usable by the invited email address, and only after they sign in and verify that email.
       </p>
     </div>
   );

@@ -97,7 +97,8 @@ export async function PATCH(
 
   // Never put localhost into a real email — fall back to production.
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || PRODUCTION_URL;
-  const invitationUrl = `${appUrl}/invitations/accept?token=${encodeURIComponent(rawToken)}`;
+  // Resend links use the same public accept path as the create flow.
+  const invitationUrl = `${PRODUCTION_URL}/invite/${rawToken}`;
 
   const { data: form } = await supabase
     .from('forms')

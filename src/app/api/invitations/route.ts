@@ -145,8 +145,7 @@ export async function POST(request: NextRequest) {
 
   // Real emails must never carry localhost links: fall back to the
   // production domain, not the dev server.
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || PRODUCTION_URL;
-  const inviteUrl = `${appUrl}/invitations/accept?token=${encodeURIComponent(rawToken)}`;
+  const inviteUrl = `${PRODUCTION_URL}/invite/${rawToken}`;
 
   const { data: ws } = await supabase
     .from('workspaces')

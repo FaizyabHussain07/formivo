@@ -54,7 +54,10 @@ function SignUpForm() {
 
     startTransition(async () => {
       const supabase = createBrowserSupabaseClient();
-      const origin = window.location.origin;
+      const origin =
+        typeof window !== 'undefined' && window.location.origin
+          ? window.location.origin.replace(/\/$/, '')
+          : 'https://formivo.faizyab.me';
       const callback = `${origin}/auth/callback?next=${encodeURIComponent(nextHref)}`;
 
       const { data, error } = await supabase.auth.signUp({

@@ -25,7 +25,8 @@ function SignInForm() {
   const confirmed = searchParams.get('confirmed');
   const authError = searchParams.get('error');
   /* Invitation links pass ?next= so the client lands back on acceptance. */
-  const nextHref = safeNextPath(searchParams.get('next'));
+  const rawNext = searchParams.get('next') ?? '';
+  const nextHref = safeNextPath(rawNext.startsWith('?') ? rawNext : `?${rawNext}`);
   const nextQuery = nextHref === '/dashboard' ? '' : `?next=${encodeURIComponent(nextHref)}`;
 
   const handleSignIn = async (e: React.FormEvent) => {

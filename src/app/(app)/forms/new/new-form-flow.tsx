@@ -10,7 +10,6 @@ type Step = 'choose' | 'name' | 'secret';
 
 interface CreatedForm {
   publicId: string;
-  secret: string;
   endpoint: string;
 }
 
@@ -45,7 +44,6 @@ export function NewFormFlow() {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [created, setCreated] = useState<CreatedForm | null>(null);
-  const [secretRevealed, setSecretRevealed] = useState(false);
   const router = useRouter();
 
   const handleCreate = (e: React.FormEvent) => {
@@ -57,12 +55,12 @@ export function NewFormFlow() {
         setError(result.error);
         return;
       }
-      setCreated({ publicId: result.publicId, secret: result.secret, endpoint: result.endpoint });
+      setCreated({ publicId: result.publicId, endpoint: result.endpoint });
       setStep('secret');
     });
   };
 
-  // ── Step 3: secret shown exactly once ──────────────────────────────
+  // ── Step 3: endpoint ready ─────────────────────────────────────
   if (step === 'secret' && created) {
     return (
       <div className="mx-auto max-w-2xl">
@@ -72,41 +70,13 @@ export function NewFormFlow() {
             <h1 className="text-lg font-semibold tracking-tight">Form created</h1>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
-            Point your existing form&apos;s action at this endpoint — browser
-            submissions need no secret. Copy the secret below now if you plan to
-            use the server-side JSON API; it is shown only once.
+            Point your existing form&apos;s <code className="rounded border border-border bg-surface-muted px-1 font-mono text-[12px]">action</code> at
+            this endpoint and submit — the first submission appears in your
+            leads within a second.
           </p>
 
-          <div className="mt-5 space-y-4">
+          <div className="mt-5">
             <CopyRow label="Endpoint" value={`POST ${created.endpoint}`} />
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Secret</p>
-              <div className="mt-1 flex items-center gap-2">
-                <code className="min-w-0 flex-1 truncate rounded-md border border-border bg-surface-muted px-3 py-2 font-mono text-xs">
-                  {secretRevealed ? created.secret : '•'.repeat(48)}
-                </code>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setSecretRevealed((v) => !v)}
-                >
-                  {secretRevealed ? 'Hide' : 'Reveal'}
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(created.secret);
-                  }}
-                >
-                  Copy
-                </Button>
-              </div>
-            </div>
-            <div className="rounded-md border border-warning/30 bg-warning-soft px-3 py-2 text-xs text-warning">
-              The secret is only for the authenticated JSON API. Keep it on your
-              server and never commit it to a public repository.
-            </div>
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">

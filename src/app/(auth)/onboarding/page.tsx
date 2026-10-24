@@ -72,12 +72,37 @@ function WorkspaceForm() {
 
     startTransition(async () => {
       const supabase = createBrowserSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError('Your session expired. Please sign in again.');
+        return;
+      }
+
+      // One workspace per account: if one already exists, go straight to it.
+      const { data: existing } = await supabase
+        .from('workspace_memberships')
+        .select('workspace_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (existing) {
+        router.push('/dashboard');
+        router.refresh();
+        return;
+      }
+
+      // owner_id must be set explicitly — the insert policy checks
+      // auth.uid() = owner_id, and a trigger creates the owner membership.
       const { error } = await supabase
         .from('workspaces')
-        .insert({ name: name.trim() });
+        .insert({ name: name.trim(), owner_id: user.id });
 
       if (error) {
-        setError(error.message);
+        // Never surface raw database errors.
+        setError(
+          error.code === '42501'
+            ? 'You already have a workspace. Refresh the page to continue.'
+            : 'Could not create the workspace. Please try again.',
+        );
         return;
       }
 

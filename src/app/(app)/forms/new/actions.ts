@@ -6,16 +6,12 @@ import { PLANS, DEFAULT_PLAN, type PlanId } from '@/lib/plans';
 import { createHash, randomBytes } from 'crypto';
 
 /**
- * Creates a form in the current user's workspace and returns the plaintext
- * secret exactly once (it is stored only as a SHA-256 hash).
+ * Creates a form in the current user's workspace.
  * Server action — authorization comes from the authenticated session + RLS.
  */
 export async function createFormAction(
   name: string,
-): Promise<
-  | { ok: true; publicId: string; secret: string; endpoint: string }
-  | { ok: false; error: string }
-> {
+): Promise<{ ok: true; publicId: string; endpoint: string } | { ok: false; error: string }> {
   const trimmed = name.trim();
   if (!trimmed || trimmed.length > 100) {
     return { ok: false, error: 'Please provide a form name (max 100 characters).' };
@@ -60,6 +56,8 @@ export async function createFormAction(
   }
 
   const publicId = 'frm_' + randomBytes(9).toString('hex');
+  // The forms schema requires a secret hash; generate one so the column is
+  // satisfied. No public API consumes it today, so it is never shown.
   const secret = 'fmv_' + randomBytes(32).toString('hex');
   const secretHash = createHash('sha256').update(secret).digest('hex');
 
@@ -82,7 +80,6 @@ export async function createFormAction(
   return {
     ok: true,
     publicId,
-    secret,
     endpoint: `${PRODUCTION_URL}/api/f/${publicId}`,
   };
 }

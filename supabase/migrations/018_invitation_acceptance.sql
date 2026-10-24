@@ -132,9 +132,9 @@ revoke all on function public.accept_invitation(text) from anon;
 grant execute on function public.accept_invitation(text) to authenticated, service_role;
 
 -- ── Owner view of who has access ─────────────────────────────────────
--- profiles is row-level restricted to its own owner, so the owner cannot read
--- a client's email through plain selects. This keeps the lookup server-side
--- and re-checks workspace ownership for the requested form.
+-- profiles is row-level restricted to its own owner, and email lives in
+-- auth.users (profiles has no email column). SECURITY DEFINER lets the owner
+-- look up the invited address server-side while RLS stays closed.
 create or replace function public.list_form_client_access(p_form_id uuid)
 returns table (
   access_id uuid,
@@ -147,9 +147,10 @@ language sql
 security definer
 set search_path = public, pg_temp
 as $$
-  select c.id, c.user_id, p.email, p.full_name, c.created_at
+  select c.id, c.user_id, u.email, p.full_name, c.created_at
     from public.client_form_access c
     join public.profiles p on p.id = c.user_id
+    join auth.users u on u.id = c.user_id
    where c.form_id = p_form_id
      and public.is_workspace_owner(c.workspace_id)
    order by c.created_at desc;

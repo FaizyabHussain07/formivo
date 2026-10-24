@@ -1,11 +1,9 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { AlertTriangle, Check, Copy, ExternalLink, RefreshCw, Send } from 'lucide-react';
-import { rotateFormSecretAction } from './actions';
-import { Button, Callout, Card, CopyField, Input, Label, Tabs } from '@/components/ui';
+import { AlertTriangle, Copy, ExternalLink } from 'lucide-react';
+import { Button, Card, CopyField, Tabs } from '@/components/ui';
 import { CodeBlock } from '@/components/code';
 import { useToast } from '@/components/toast';
 import { PRODUCTION_URL } from '@/lib/app-config';
@@ -42,88 +40,9 @@ const htmlSample = (formId: string) =>
  */
 export function FormDetail({ form }: FormDetailProps) {
   const [tab, setTab] = useState<'overview' | 'integration' | 'settings'>('overview');
-  const [secret, setSecret] = useState<string | null>(null);
-  const [revealed, setRevealed] = useState(false);
-  const [rotateResult, setRotateResult] = useState<string | null>(null);
-  const [rotateError, setRotateError] = useState<string | null>(null);
-  const [rotatePending, startRotate] = useTransition();
-  const [testPending, startTest] = useTransition();
-  const [testResult, setTestResult] = useState<
-    { ok: boolean; message: string; id?: string } | null
-  >(null);
-  const [testToken, setTestToken] = useState('');
   const { toast } = useToast();
 
-  const router = useRouter();
   const endpoint = `${PROD}/api/f/${form.public_id}`;
-  const displaySecret = rotateResult ?? secret;
-
-  const handleRotate = () => {
-    setRotateError(null);
-    startRotate(async () => {
-      const result = await rotateFormSecretAction(form.public_id);
-      if (!result.ok) {
-        setRotateError(result.error);
-        return;
-      }
-      setRotateResult(result.secret);
-      setSecret(result.secret);
-      setRevealed(true);
-      toast({
-        title: 'Secret rotated',
-        description: 'The previous secret stopped working immediately.',
-        variant: 'success',
-      });
-      router.refresh();
-    });
-  };
-
-  const handleTest = () => {
-    if (!testToken.trim()) {
-      toast({
-        title: 'Secret required',
-        description: 'Paste your form secret to send a JSON API test.',
-        variant: 'error',
-      });
-      return;
-    }
-    setTestResult(null);
-    startTest(async () => {
-      try {
-        const res = await fetch(`/api/v1/forms/${form.public_id}/submissions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${testToken.trim()}`,
-          },
-          body: JSON.stringify({
-            data: {
-              name: 'Test Submission',
-              email: 'test@example.com',
-              message: 'Sent from the Formivo form page.',
-            },
-            metadata: { source: 'dashboard-test' },
-          }),
-        });
-        const body = await res.json();
-        if (body.success) {
-          setTestResult({
-            ok: true,
-            message: 'Submission received.',
-            id: body.leadId,
-          });
-          router.refresh();
-        } else {
-          setTestResult({
-            ok: false,
-            message: body.error?.message ?? 'The test submission failed.',
-          });
-        }
-      } catch {
-        setTestResult({ ok: false, message: 'Network error — please try again.' });
-      }
-    });
-  };
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-6 lg:px-8 lg:py-8">
@@ -281,98 +200,14 @@ export function FormDetail({ form }: FormDetailProps) {
               <div className="space-y-4 p-5">
                 <CopyField label="Endpoint" value={endpoint} prefix="POST" />
                 <CodeBlock lang="html" filename="index.html" code={htmlSample(form.public_id)} />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <CopyField label="Content-Type" value="application/x-www-form-urlencoded" />
+                  <CopyField label="Method" value="POST" />
+                </div>
                 <p className="text-[13px] text-muted-foreground">
                   Add an optional hidden <code className="rounded border border-border bg-surface-muted px-1 font-mono text-[12px]">_redirect</code>{' '}
                   field to send the visitor to a same-origin thank-you page after submit.
                 </p>
-              </div>
-            </Card>
-
-            <Card>
-              <div className="border-b border-border px-5 py-4">
-                <h2 className="text-[15px] font-semibold">JSON API (server-side)</h2>
-                <p className="mt-0.5 text-[13px] text-muted-foreground">
-                  Authenticate with your form secret. Keep it on your server.
-                </p>
-              </div>
-              <div className="space-y-4 p-5">
-                <CodeBlock
-                  lang="ts"
-                  filename="server call"
-                  code={`await fetch("${PROD}/api/v1/forms/${form.public_id}/submissions", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": "Bearer YOUR_FORM_SECRET"
-  },
-  body: JSON.stringify({
-    data: { name: "John Doe", email: "john@example.com" }
-  })
-});`}
-                />
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <CopyField label="Content-Type" value="application/json" />
-                  <CopyField label="Method" value="POST" />
-                </div>
-              </div>
-            </Card>
-
-            <Card>
-              <div className="border-b border-border px-5 py-4">
-                <h2 className="text-[15px] font-semibold">Send a test submission</h2>
-                <p className="mt-0.5 text-[13px] text-muted-foreground">
-                  Uses the JSON API — paste your form secret to verify the connection.
-                </p>
-              </div>
-              <div className="space-y-4 p-5">
-                <div>
-                  <Label htmlFor="test-secret">Form secret</Label>
-                  <div className="mt-1.5 flex flex-wrap gap-2">
-                    <Input
-                      id="test-secret"
-                      type="password"
-                      className="max-w-md flex-1"
-                      placeholder="fmv_..."
-                      value={testToken}
-                      onChange={(e) => setTestToken(e.target.value)}
-                      autoComplete="off"
-                    />
-                    <Button onClick={handleTest} disabled={testPending}>
-                      {testPending ? (
-                        'Sending…'
-                      ) : (
-                        <>
-                          <Send className="h-3.5 w-3.5" aria-hidden="true" />
-                          Send test
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  <p className="mt-1.5 text-xs text-muted-foreground">
-                    HTML forms do not need the secret — this tests the authenticated JSON
-                    endpoint only.
-                  </p>
-                </div>
-
-                {testResult && (
-                  <Callout tone={testResult.ok ? 'success' : 'danger'}>
-                    {testResult.ok ? (
-                      <>
-                        Submission received.
-                        {testResult.id && (
-                          <>
-                            {' '}
-                            Lead ID:{' '}
-                            <code className="font-mono">{testResult.id}</code> — it is in your
-                            leads list now.
-                          </>
-                        )}
-                      </>
-                    ) : (
-                      testResult.message
-                    )}
-                  </Callout>
-                )}
               </div>
             </Card>
           </div>
@@ -403,67 +238,6 @@ export function FormDetail({ form }: FormDetailProps) {
                   </div>
                 ))}
               </dl>
-            </Card>
-
-            <Card>
-              <div className="border-b border-border px-5 py-4">
-                <h2 className="text-[15px] font-semibold">Form secret</h2>
-                <p className="mt-0.5 text-[13px] text-muted-foreground">
-                  Only used by the JSON API. Stored as a hash — we cannot show it again.
-                </p>
-              </div>
-              <div className="space-y-4 p-5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setRevealed((v) => !v)}
-                    disabled={!displaySecret}
-                  >
-                    {revealed ? 'Hide secret' : 'Reveal secret'}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={async () => {
-                      if (!displaySecret) return;
-                      await navigator.clipboard.writeText(displaySecret);
-                      toast({ title: 'Secret copied', variant: 'success' });
-                    }}
-                    disabled={!displaySecret}
-                  >
-                    <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-                    Copy
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleRotate}
-                    disabled={rotatePending}
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
-                    {rotatePending ? 'Rotating…' : 'Rotate secret'}
-                  </Button>
-                </div>
-
-                {displaySecret ? (
-                  <code className="block break-all rounded-md border border-border bg-surface-muted px-3 py-2 font-mono text-xs">
-                    {revealed ? displaySecret : '•'.repeat(48)}
-                  </code>
-                ) : (
-                  <p className="text-[13px] text-muted-foreground">
-                    The current secret is not available here. Rotate it to generate a new
-                    one — the new value is shown exactly once.
-                  </p>
-                )}
-
-                {rotateError && <Callout tone="danger">{rotateError}</Callout>}
-
-                <Callout tone="warning">
-                  Rotating invalidates the current secret immediately. Any integration still
-                  using it will start returning 401.
-                </Callout>
-              </div>
             </Card>
 
             <Card>
@@ -516,5 +290,3 @@ export function FormDetail({ form }: FormDetailProps) {
     </div>
   );
 }
-
-export { Check };

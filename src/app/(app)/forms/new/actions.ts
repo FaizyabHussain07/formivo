@@ -1,6 +1,7 @@
 'use server';
 
 import { createServerSupabaseClient } from '@/lib/db/server';
+import { PRODUCTION_URL } from '@/lib/app-config';
 import { PLANS, DEFAULT_PLAN, type PlanId } from '@/lib/plans';
 import { createHash, randomBytes } from 'crypto';
 
@@ -74,15 +75,14 @@ export async function createFormAction(
     return { ok: false, error: 'Could not create the form. Please try again.' };
   }
 
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'http://localhost:3000';
-
   console.log('[form_created]', { publicId, workspaceId: membership.workspace_id });
 
+  // The endpoint a developer copies is always the HTML endpoint on the
+  // production domain — confirmed working, no secret needed for browser posts.
   return {
     ok: true,
     publicId,
     secret,
-    endpoint: `${appUrl}/api/v1/forms/${publicId}/submissions`,
+    endpoint: `${PRODUCTION_URL}/api/f/${publicId}`,
   };
 }

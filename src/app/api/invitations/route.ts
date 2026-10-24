@@ -3,6 +3,8 @@ import { createServerSupabaseClient } from '@/lib/db/server';
 import { createHash, randomBytes } from 'crypto';
 import { z } from 'zod';
 import { sendInvitationEmail } from '@/lib/email';
+import { checkRateLimit, clientIp } from '@/lib/rate-limit';
+import { invitationTtlMs } from '@/lib/app-config';
 
 const createInvitationSchema = z.object({
   formPublicId: z.string().min(1),
@@ -29,6 +31,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: { code: 'FORBIDDEN', message: 'Only workspace owners can invite clients.' } },
       { status: 403 },
+    );
+  }
+
+  // Cap outbound invitation email per owner to prevent abuse.
+  const limit = checkRateLimit(`invite-create:${user.id}:${clientIp(request.headers)}`, {
+    max: 10,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: { code: 'RATE_LIMITED', message: 'Too many invitations sent. Try again later.' } },
+      { status: 429, headers: { 'Retry-After': String(limit.retryAfterSec) } },
     );
   }
 
@@ -93,7 +107,7 @@ export async function POST(request: NextRequest) {
 
   const rawToken = 'inv_' + randomBytes(32).toString('hex');
   const tokenHash = createHash('sha256').update(rawToken).digest('hex');
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + invitationTtlMs()).toISOString();
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -130,7 +144,7 @@ export async function POST(request: NextRequest) {
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'http://localhost:3000';
-  const inviteUrl = `${appUrl}/invite/${rawToken}`;
+  const inviteUrl = `${appUrl}/invitations/accept?token=${encodeURIComponent(rawToken)}`;
 
   const { data: ws } = await supabase
     .from('workspaces')

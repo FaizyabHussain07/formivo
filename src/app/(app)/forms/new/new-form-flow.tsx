@@ -72,8 +72,9 @@ export function NewFormFlow() {
             <h1 className="text-lg font-semibold tracking-tight">Form created</h1>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
-            Your endpoint and secret are ready. Copy the secret now — it is
-            shown only once and cannot be retrieved later.
+            Point your existing form&apos;s action at this endpoint — browser
+            submissions need no secret. Copy the secret below now if you plan to
+            use the server-side JSON API; it is shown only once.
           </p>
 
           <div className="mt-5 space-y-4">
@@ -103,8 +104,8 @@ export function NewFormFlow() {
               </div>
             </div>
             <div className="rounded-md border border-warning/30 bg-warning-soft px-3 py-2 text-xs text-warning">
-              Keep this secret on your server. Never commit it to a public
-              repository — anyone with it can submit leads to your form.
+              The secret is only for the authenticated JSON API. Keep it on your
+              server and never commit it to a public repository.
             </div>
           </div>
 

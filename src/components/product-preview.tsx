@@ -79,7 +79,7 @@ export function DashboardPreview() {
                   {form.name}
                 </p>
                 <p className="truncate font-mono text-[10.5px] text-subtle-foreground">
-                  /api/v1/forms/{form.id}/submissions
+                  /api/f/{form.id}
                 </p>
               </div>
               <span
@@ -136,24 +136,16 @@ const HTML_SAMPLE = `<!-- Your existing form — markup unchanged -->
   <button type="submit">Send</button>
 </form>`;
 
-const JS_SAMPLE = `document.querySelector('#contact')
-  .addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const data = Object.fromEntries(new FormData(e.target));
-
-    await fetch(
-      'https://formivo.faizyab.me/api/v1/forms/YOUR_FORM_ID/submissions',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer YOUR_FORM_SECRET',
-        },
-        body: JSON.stringify({ data }),
-      },
-    );
-  });`;
+const JS_SAMPLE = `// Same endpoint from JavaScript — still no backend of your own.
+await fetch('https://formivo.faizyab.me/api/f/YOUR_FORM_ID', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'Ada Lovelace',
+    email: 'ada@example.com',
+    message: 'Hello from my site.',
+  }),
+});`;
 
 export function IntegrationSnippet() {
   return (
@@ -163,9 +155,9 @@ export function IntegrationSnippet() {
       <p className="flex items-start gap-2 text-xs text-muted-foreground">
         <ArrowUpRight className="mt-0.5 h-3.5 w-3.5 flex-none text-primary" aria-hidden="true" />
         <span>
-          Prefer to keep the secret off the client? Forward the payload from your own
-          server instead — the request format is identical. Both approaches are
-          covered in the docs.
+          One endpoint for HTML forms, fetch calls and server-side code. Field
+          names and values arrive exactly as submitted — full reference in the
+          docs.
         </span>
       </p>
     </div>

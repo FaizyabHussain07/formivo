@@ -8,9 +8,11 @@ import { rotateFormSecretAction } from './actions';
 import { Button, Callout, Card, CopyField, Input, Label, Tabs } from '@/components/ui';
 import { CodeBlock } from '@/components/code';
 import { useToast } from '@/components/toast';
-import { APP_URL } from '@/lib/app-config';
+import { PRODUCTION_URL } from '@/lib/app-config';
 
-const PROD = APP_URL;
+/* Endpoint URLs a developer copies always use the production domain,
+   no matter where the dashboard itself is served from. */
+const PROD = PRODUCTION_URL;
 
 interface FormDetailProps {
   form: {
@@ -88,7 +90,7 @@ export function FormDetail({ form }: FormDetailProps) {
     setTestResult(null);
     startTest(async () => {
       try {
-        const res = await fetch(`${PROD}/api/v1/forms/${form.public_id}/submissions`, {
+        const res = await fetch(`/api/v1/forms/${form.public_id}/submissions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

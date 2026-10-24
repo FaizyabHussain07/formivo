@@ -6,7 +6,7 @@ import { CodeBlock } from '@/components/code';
 export const metadata = {
   title: 'Documentation',
   description:
-    'Connect an existing form to Formivo: HTML integration, the JSON API, error codes, limits, testing and security notes.',
+    'Connect an existing form to Formivo: HTML integration, error codes, limits, testing and security notes.',
 };
 
 const SECTIONS = [
@@ -14,7 +14,6 @@ const SECTIONS = [
   { id: 'quick-start', label: 'Quick Start' },
   { id: 'html-integration', label: 'HTML Integration' },
   { id: 'field-naming', label: 'Field Naming' },
-  { id: 'json-api', label: 'JSON API' },
   { id: 'errors', label: 'Errors' },
   { id: 'limits', label: 'Rate Limits & Size' },
   { id: 'testing', label: 'Testing' },
@@ -40,16 +39,13 @@ const REDIRECT_EXAMPLE = `<form action="https://formivo.faizyab.me/api/f/YOUR_FO
   <button type="submit">Send</button>
 </form>`;
 
-const JSON_EXAMPLE = `fetch("https://formivo.faizyab.me/api/v1/forms/YOUR_FORM_ID/submissions", {
+const JSON_EXAMPLE = `await fetch("https://formivo.faizyab.me/api/f/YOUR_FORM_ID", {
   method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": "Bearer fmv_live_xxxxxxxxx"
-  },
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    data: { name: "John Doe", email: "john@example.com" },
-    metadata: { source: "pricing-page" }
-  }),
+    name: "John Doe",
+    email: "john@example.com"
+  })
 });`;
 
 const CURL_EXAMPLE = `curl -X POST "https://formivo.faizyab.me/api/f/YOUR_FORM_ID" \\
@@ -59,7 +55,6 @@ const CURL_EXAMPLE = `curl -X POST "https://formivo.faizyab.me/api/f/YOUR_FORM_I
 
 const ERROR_CODES: Array<[string, string, string]> = [
   ['INVALID_REQUEST', '400', 'Missing fields, unsupported content type, or malformed body.'],
-  ['UNAUTHORIZED', '401', 'JSON API only — missing or invalid Bearer secret.'],
   ['QUOTA_EXCEEDED', '402', 'The monthly lead limit for the plan has been reached.'],
   ['NOT_FOUND', '404', 'No form exists for this form ID.'],
   ['FORM_INACTIVE', '409', 'The form is archived and no longer accepts submissions.'],
@@ -142,9 +137,8 @@ export default function DocsPage() {
             leads. You do not rebuild your form — you point it at a Formivo endpoint.
           </p>
           <p>
-            There are two integration surfaces: the <strong>HTML endpoint</strong> for
-            native browser forms, and the <strong>JSON API</strong> for server-side code
-            that needs authentication and structured errors.
+            One endpoint handles it all: native HTML forms, JavaScript{' '}
+            <code>fetch</code> calls, and server-side code.
           </p>
         </Section>
 
@@ -211,20 +205,6 @@ export default function DocsPage() {
           <CodeBlock lang="bash" filename="curl" code={CURL_EXAMPLE} />
         </Section>
 
-        <Section id="json-api" title="JSON API">
-          <p>
-            For server-side integrations that need authentication, use the JSON endpoint
-            with your form secret. The secret is shown once at form creation and can be
-            rotated from the form page.
-          </p>
-          <CodeBlock lang="ts" filename="server-side call" code={JSON_EXAMPLE} />
-          <ul className="list-disc space-y-1.5 pl-5">
-            <li>Header <code>Authorization: Bearer FORM_SECRET</code> is required.</li>
-            <li>Body must contain a <code>data</code> object; <code>metadata</code> is optional.</li>
-            <li>Send an <code>Idempotency-Key</code> header to make retries safe (24h window).</li>
-          </ul>
-        </Section>
-
         <Section id="errors" title="Errors">
           <p>Every failure returns a machine-readable code and a request ID.</p>
           <div className="space-y-2">
@@ -268,9 +248,10 @@ export default function DocsPage() {
           <ol className="list-decimal space-y-2 pl-5">
             <li>Submit your real form once and confirm the success page appears.</li>
             <li>Open Dashboard → Leads — the record should be there within a second.</li>
-            <li>For the JSON API, send a curl request with your secret and expect a 200.</li>
+            <li>Or send the JSON example above with curl and expect a 200.</li>
             <li>Check the request ID in the response against your server logs if not.</li>
           </ol>
+          <CodeBlock lang="ts" filename="quick test" code={JSON_EXAMPLE} />
         </Section>
 
         <Section id="troubleshooting" title="Troubleshooting">

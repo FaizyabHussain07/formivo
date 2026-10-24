@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { PageHeader, Card, Badge, Button } from '@/components/ui';
 import { requireWorkspace } from '@/lib/session';
 
@@ -30,18 +31,15 @@ export default async function ClientsPage() {
             <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
               <p className="text-[15px] font-semibold">No clients yet</p>
               <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                Invite a client to a specific form and they get a read-only
-                dashboard for their leads — without seeing your technical
-                configuration.
+                Open a form and use its Client Access page to invite a client by
+                email. They get a read-only dashboard for that form alone —
+                without seeing your technical configuration.
               </p>
               <div className="mt-4">
-                <Button disabled title="Client invitations arrive with the next phase">
-                  Invite Client
-                </Button>
+                <Link href="/forms">
+                  <Button>Choose a form to invite from</Button>
+                </Link>
               </div>
-              <p className="mt-3 text-xs text-subtle-foreground">
-                Email invitations (Resend) are part of the next build phase.
-              </p>
             </div>
           ) : (
             <div className="space-y-2">

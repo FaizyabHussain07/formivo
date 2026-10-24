@@ -1,20 +1,20 @@
 import { redirect } from 'next/navigation';
-import { createServerSupabaseClient } from '@/lib/db/server';
 import { requireWorkspace, PageHeader } from '@/lib/session';
-import { Card, Badge, Button, Input, Label } from '@/components/ui';
+import { Card } from '@/components/ui';
+import {
+  ClientAccessPanel,
+  type AccessRow,
+  type PendingInvitation,
+} from './client-access-panel';
 
-export const metadata = { title: 'Clients' };
+export const metadata = { title: 'Client Access' };
 
 export default async function FormClientsPage({
   params,
 }: {
   params: Promise<{ formPublicId: string }>;
 }) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user?.email) redirect('/sign-in');
-
-  const { workspace } = await requireWorkspace();
+  const { supabase, workspace } = await requireWorkspace();
   const { formPublicId } = await params;
 
   const { data: form } = await supabase
@@ -27,29 +27,66 @@ export default async function FormClientsPage({
     redirect('/forms');
   }
 
-  const { data: access } = await supabase
-    .from('client_form_access')
-    .select('id, created_at, user_id')
-    .eq('workspace_id', workspace.id)
+  const { data: invitationRows } = await supabase
+    .from('invitations')
+    .select('id, email, status, created_at, expires_at')
     .eq('form_id', form.id)
     .order('created_at', { ascending: false });
 
-  const clientRows = (access ?? []) as Array<{
+  const invitations: PendingInvitation[] = ((invitationRows ?? []) as Array<{
     id: string;
+    email: string;
+    status: string;
     created_at: string;
-    user_id: string;
-  }>;
+    expires_at: string;
+  }>)
+    .filter((row) => row.status === 'pending')
+    .map((row) => ({
+      id: row.id,
+      email: row.email,
+      created_at: row.created_at,
+      expires_at: row.expires_at,
+    }));
 
-  // Get profile info for each client
-  const clientIds = clientRows.map((c) => c.user_id);
-  let profiles: Array<{ id: string; email: string; full_name: string | null }> = [];
+  // Preferred path (migration 018): returns client emails despite profiles RLS.
+  let access: AccessRow[] = [];
+  const { data: rpcRows, error: rpcError } = await supabase.rpc(
+    'list_form_client_access',
+    { p_form_id: form.id },
+  );
 
-  if (clientIds.length > 0) {
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('id, email, full_name')
-      .in('id', clientIds);
-    profiles = profileData ?? [];
+  if (!rpcError && Array.isArray(rpcRows)) {
+    access = (rpcRows as Array<{
+      access_id: string;
+      user_id: string;
+      email: string | null;
+      full_name: string | null;
+      granted_at: string;
+    }>).map((row) => ({
+      id: row.access_id,
+      email: row.email,
+      full_name: row.full_name,
+      granted_at: row.granted_at,
+    }));
+  } else {
+    // Fallback before the migration is applied: rows are visible to the owner,
+    // but profile emails are not (profiles RLS), so labels stay neutral.
+    const { data: rows } = await supabase
+      .from('client_form_access')
+      .select('id, user_id, created_at')
+      .eq('form_id', form.id)
+      .order('created_at', { ascending: false });
+
+    access = ((rows ?? []) as Array<{
+      id: string;
+      user_id: string;
+      created_at: string;
+    }>).map((row) => ({
+      id: row.id,
+      email: null,
+      full_name: null,
+      granted_at: row.created_at,
+    }));
   }
 
   return (
@@ -57,83 +94,22 @@ export default async function FormClientsPage({
       <PageHeader title="Client Access" />
       <div className="px-5 py-6 lg:px-8 lg:py-8">
         <Card className="p-6">
-          <h2 className="text-lg font-semibold tracking-tight">Client Access for {form.name}</h2>
+          <h2 className="text-lg font-semibold tracking-tight">
+            Client access to {form.name}
+          </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Invite clients to view leads from this form. They get a read-only dashboard.
+            Invited clients get a read-only view of this form&apos;s submissions —
+            nothing else in the workspace.
           </p>
 
-          <form
-            className="mt-6 space-y-4"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              const email = formData.get('email') as string;
-
-              const res = await fetch('/api/invitations', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ formPublicId, email }),
-              });
-
-              const data = await res.json();
-              if (!res.ok) {
-                alert(data.error?.message || 'Failed to send invitation');
-                return;
-              }
-
-              window.location.reload();
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex-1 space-y-1.5">
-                <Label htmlFor="client-email">Client email</Label>
-                <Input
-                  id="client-email"
-                  name="email"
-                  type="email"
-                  placeholder="client@example.com"
-                  required
-                />
-              </div>
-              <Button type="submit">Invite Client</Button>
-            </div>
-          </form>
-
-          {clientRows.length === 0 ? (
-            <div className="mt-8 rounded-md border border-border bg-surface-muted/50 p-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                No clients have been invited to this form yet.
-              </p>
-            </div>
-          ) : (
-            <div className="mt-6 space-y-2">
-              {clientRows.map((client) => {
-                const profile = profiles.find((p) => p.id === client.user_id);
-                return (
-                  <div
-                    key={client.id}
-                    className="flex items-center justify-between rounded-md border border-border p-3"
-                  >
-                    <div>
-                      <p className="font-medium">{profile?.email ?? client.user_id}</p>
-                      {profile?.full_name && (
-                        <p className="text-xs text-muted-foreground">{profile.full_name}</p>
-                      )}
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        Invited {new Date(client.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge>Viewer</Badge>
-                      <Button variant="ghost" size="sm">
-                        Revoke
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <div className="mt-6">
+            <ClientAccessPanel
+              formPublicId={form.public_id}
+              formName={form.name}
+              invitations={invitations}
+              access={access}
+            />
+          </div>
         </Card>
       </div>
     </>

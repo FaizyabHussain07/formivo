@@ -16,46 +16,56 @@ export default async function FormAnalyticsPage({
 
   const { formPublicId } = await params;
 
-  const { data: access, error: accessError } = await supabase
-    .from('client_form_access')
-    .select('id, forms(id, name, public_id, status)')
-    .eq('user_id', user.id)
-    .eq('forms.public_id', formPublicId)
+  // Step 1: Find the form
+  const formResult = await supabase
+    .from('forms')
+    .select('id, name, status')
+    .eq('public_id', formPublicId)
     .single();
 
-  if (accessError || !access) redirect('/client');
+  const formRow = formResult.data as { id: string; name: string; status: string } | null;
+  if (!formRow) redirect('/client');
 
-  const formId = access.forms?.id;
-  const formName = access.forms?.name ?? 'Form';
-  const formStatus = access.forms?.status ?? 'active';
-  if (!formId) redirect('/client');
+  const formId = formRow.id;
 
-  const { data: leads } = await supabase
+  // Step 2: Check client_form_access
+  const accessResult = await supabase
+    .from('client_form_access')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('form_id', formId)
+    .single();
+
+  const access = accessResult.data as { id: string } | null;
+  if (!access) redirect('/client');
+
+  const formName = formRow.name;
+  const formStatus = formRow.status;
+
+  // Get analytics
+  const leadsResult = await supabase
     .from('leads')
-    .select('id, status')
+    .select('id, status, created_at')
     .eq('form_id', formId);
 
-  const allLeads = leads?.data ?? [];
-  const totalLeads = allLeads.length;
+  const leadList = (leadsResult.data ?? []) as Array<{ status: string; created_at: string }>;
+  const totalLeads = leadList.length;
 
   const byStatus: Record<string, number> = {};
-  for (const lead of allLeads) {
+  for (const lead of leadList) {
     byStatus[lead.status] = (byStatus[lead.status] ?? 0) + 1;
   }
 
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  const monthLeads = allLeads.filter(
-    (l) => new Date(l.created_at) >= monthStart,
+  const monthLeads = leadList.filter(
+    (l) => l.status === 'new' && new Date(l.created_at) >= monthStart,
   ).length;
 
   const statusOrder = ['new', 'contacted', 'qualified', 'converted', 'archived'];
 
   return (
-    <AppShell
-      user={{ id: user.id, email: user.email }}
-      workspaceName={formName}
-    >
+    <AppShell user={{ id: user.id, email: user.email }} workspaceName={formName}>
       <div className="border-b border-border bg-surface-muted/50 px-5 py-4 lg:px-8">
         <div className="flex items-center justify-between gap-3">
           <p className="text-lg font-semibold">Analytics</p>

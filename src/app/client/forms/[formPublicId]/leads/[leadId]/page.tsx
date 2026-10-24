@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/db/server';
 import { AppShell } from '@/components/app-shell';
-import { Card, Badge, Link } from '@/components/ui';
+import Link from 'next/link';
+import { Card, Badge } from '@/components/ui';
 
 export const metadata = { title: 'Lead' };
 
@@ -16,23 +17,47 @@ export default async function ClientLeadDetailPage({
 
   const { formPublicId, leadId } = await params;
 
-  // Verify form access
-  const { data: access } = await supabase
-    .from('client_form_access')
-    .select('id, forms(id)')
-    .eq('user_id', user.id)
-    .eq('forms.public_id', formPublicId)
+  // Step 1: Find the form
+  const formResult = await supabase
+    .from('forms')
+    .select('id, name')
+    .eq('public_id', formPublicId)
     .single();
 
+  const formRow = formResult.data as { id: string; name: string } | null;
+  if (!formRow) redirect('/client');
+
+  const formId = formRow.id;
+
+  // Step 2: Check client_form_access
+  const accessResult = await supabase
+    .from('client_form_access')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('form_id', formId)
+    .single();
+
+  const access = accessResult.data as { id: string } | null;
   if (!access) redirect('/client');
 
+  const formName = formRow.name;
+
   // Get lead
-  const { data: leadData } = await supabase
+  const leadResult = await supabase
     .from('leads')
     .select('id, data, metadata, status, created_at, updated_at')
     .eq('id', leadId)
-    .eq('form_id', access.forms.id)
+    .eq('form_id', formId)
     .single();
+
+  const leadData = leadResult.data as {
+    id: string;
+    data: Record<string, unknown> | null;
+    metadata: Record<string, unknown> | null;
+    status: string;
+    created_at: string;
+    updated_at: string;
+  } | null;
 
   if (!leadData) redirect(`/client/forms/${formPublicId}/leads`);
 
@@ -40,7 +65,11 @@ export default async function ClientLeadDetailPage({
     if (value === null || value === undefined) return <span className="text-subtle-foreground">—</span>;
     if (typeof value === 'object') {
       try {
-        return <code className="rounded border-border bg-surface-muted px-1.5 py-0.5 font-mono text-[13px]">{JSON.stringify(value)}</code>;
+        return (
+          <code className="rounded border-border bg-surface-muted px-1.5 py-0.5 font-mono text-[13px]">
+            {JSON.stringify(value)}
+          </code>
+        );
       } catch {
         return <span className="text-subtle-foreground">[object]</span>;
       }
@@ -50,14 +79,13 @@ export default async function ClientLeadDetailPage({
 
   const primaryFields = ['name', 'full_name', 'email', 'phone', 'company', 'message', 'subject'] as const;
   const primaryData = Object.fromEntries(
-    Object.entries(leadData.data).filter(([key]) => primaryFields.includes(key as typeof primaryFields[number])),
+    Object.entries(leadData.data ?? {}).filter(([key]) =>
+      primaryFields.includes(key as typeof primaryFields[number])
+    ),
   );
 
   return (
-    <AppShell
-      user={{ id: user.id, email: user.email }}
-      workspaceName=""
-    >
+    <AppShell user={{ id: user.id, email: user.email }} workspaceName="">
       <div className="border-b border-border bg-surface-muted/50 px-5 py-4 lg:px-8">
         <div className="flex items-center gap-3">
           <Link
@@ -102,10 +130,10 @@ export default async function ClientLeadDetailPage({
             </dl>
           )}
 
-          {Object.keys(leadData.data).length > primaryFields.length && (
+          {Object.keys(leadData.data ?? {}).length > primaryFields.length && (
             <dl className="mt-6 space-y-3 text-sm">
               <h3 className="text-sm font-semibold">All Fields</h3>
-              {Object.entries(leadData.data)
+              {Object.entries(leadData.data ?? {})
                 .filter(([key]) => !primaryFields.includes(key as typeof primaryFields[number]))
                 .map(([key, value]) => (
                   <div key={key} className="flex items-start justify-between border-b border-border pb-3">

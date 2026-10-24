@@ -18,7 +18,6 @@ export default async function FormClientsPage({
   const { workspace } = await requireWorkspace();
   const { formPublicId } = await params;
 
-  // Verify form ownership
   const { data: form } = await supabase
     .from('forms')
     .select('id, name, public_id, workspace_id')
@@ -29,21 +28,30 @@ export default async function FormClientsPage({
     redirect('/forms');
   }
 
-  // Get existing client access for this form
   const { data: access } = await supabase
     .from('client_form_access')
-    .select('id, created_at, user_id, profiles(email, full_name), forms(name, public_id)')
+    .select('id, created_at, user_id')
     .eq('workspace_id', workspace.id)
     .eq('form_id', form.id)
     .order('created_at', { ascending: false });
 
-  const clients = (access ?? []) as Array<{
+  const clientRows = (access ?? []) as Array<{
     id: string;
     created_at: string;
     user_id: string;
-    profiles: { email: string; full_name: string | null } | null;
-    forms: { name: string; public_id: string } | null;
   }>;
+
+  // Get profile info for each client
+  const clientIds = clientRows.map((c) => c.user_id);
+  let profiles: Array<{ id: string; email: string; full_name: string | null }> = [];
+
+  if (clientIds.length > 0) {
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('id, email, full_name')
+      .in('id', clientIds);
+    profiles = profileData ?? [];
+  }
 
   return (
     <AppShell user={{ id: user.id, email: user.email }} workspaceName={workspace.name}>
@@ -52,8 +60,7 @@ export default async function FormClientsPage({
         <Card className="p-6">
           <h2 className="text-lg font-semibold tracking-tight">Client Access for {form.name}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Invite clients to view leads from this form. They get a read-only dashboard — no access to your
-            technical configuration or billing.
+            Invite clients to view leads from this form. They get a read-only dashboard.
           </p>
 
           <form
@@ -93,7 +100,7 @@ export default async function FormClientsPage({
             </div>
           </form>
 
-          {clients.length === 0 ? (
+          {clientRows.length === 0 ? (
             <div className="mt-8 rounded-md border border-border bg-surface-muted/50 p-6 text-center">
               <p className="text-sm text-muted-foreground">
                 No clients have been invited to this form yet.
@@ -101,25 +108,31 @@ export default async function FormClientsPage({
             </div>
           ) : (
             <div className="mt-6 space-y-2">
-              {clients.map((client) => (
-                <div
-                  key={client.id}
-                  className="flex items-center justify-between rounded-md border border-border p-3"
-                >
-                  <div>
-                    <p className="font-medium">{client.profiles?.email ?? client.user_id}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      Invited {new Date(client.created_at).toLocaleDateString()}
-                    </p>
+              {clientRows.map((client) => {
+                const profile = profiles.find((p) => p.id === client.user_id);
+                return (
+                  <div
+                    key={client.id}
+                    className="flex items-center justify-between rounded-md border border-border p-3"
+                  >
+                    <div>
+                      <p className="font-medium">{profile?.email ?? client.user_id}</p>
+                      {profile?.full_name && (
+                        <p className="text-xs text-muted-foreground">{profile.full_name}</p>
+                      )}
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Invited {new Date(client.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge>Viewer</Badge>
+                      <Button variant="ghost" size="sm">
+                        Revoke
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge>Viewer</Badge>
-                    <Button variant="ghost" size="sm">
-                      Revoke
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Card>

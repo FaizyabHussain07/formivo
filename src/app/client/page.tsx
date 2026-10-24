@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/db/server';
 import { AppShell } from '@/components/app-shell';
+import Link from 'next/link';
 import { Card, Badge } from '@/components/ui';
 
 export const metadata = { title: 'Client Dashboard' };
@@ -10,49 +11,68 @@ export default async function ClientPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) redirect('/sign-in');
 
-  // Get client's form access
-  const { data: access } = await supabase
+  // Step 1: Get all client_form_access rows for this user
+  const accessResult = await supabase
     .from('client_form_access')
-    .select('id, created_at, forms(id, name, public_id, status, created_at)')
+    .select('id, form_id')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
-  const forms = (access ?? []) as Array<{
+  const accessList = (accessResult.data ?? []) as Array<{ id: string; form_id: string }>;
+  const formIds = accessList.map((a) => a.form_id);
+  const assignedForms: Array<{
     id: string;
+    name: string;
+    public_id: string;
+    status: string;
     created_at: string;
-    forms: {
+  }> = [];
+
+  // Step 2: Fetch form details for each form
+  if (formIds.length > 0) {
+    const formsResult = await supabase
+      .from('forms')
+      .select('id, name, public_id, status, created_at')
+      .in('id', formIds);
+
+    const formsList = (formsResult.data ?? []) as Array<{
       id: string;
       name: string;
       public_id: string;
       status: string;
       created_at: string;
-    } | null;
-  }>;
+    }>;
 
-  const assignedForms = forms.filter((f) => f.forms).map((f) => f.forms!);
+    // Map access to forms, maintaining order by created_at desc
+    const formMap = new Map(formsList.map((f) => [f.id, f]));
+    const formOrder = new Map(accessList.map((a, i) => [a.form_id, i]));
+    formsList.sort((a, b) => {
+      const ia = formOrder.get(a.id) ?? 0;
+      const ib = formOrder.get(b.id) ?? 0;
+      return ia - ib;
+    });
+    for (const f of formsList) {
+      assignedForms.push(f);
+    }
+  }
 
-  // Get total lead counts for each assigned form
-  const formIds = assignedForms.map((f) => f.id);
+  // Get lead counts across all assigned forms
   let totalLeads = 0;
   let newLeads = 0;
 
   if (formIds.length > 0) {
-    const { data: leads } = await supabase
+    const leadsResult = await supabase
       .from('leads')
       .select('id, status')
       .in('form_id', formIds);
 
-    if (leads) {
-      totalLeads = leads.length;
-      newLeads = leads.filter((l) => l.status === 'new').length;
-    }
+    const leadList = (leadsResult.data ?? []) as Array<{ status: string }>;
+    totalLeads = leadList.length;
+    newLeads = leadList.filter((l) => l.status === 'new').length;
   }
 
   return (
-    <AppShell
-      user={{ id: user.id, email: user.email }}
-      workspaceName={`Client Portal`}
-    >
+    <AppShell user={{ id: user.id, email: user.email }} workspaceName="Client Portal">
       <div className="border-b border-border bg-surface-muted/50 px-5 py-4 lg:px-8">
         <p className="text-lg font-semibold">Client Dashboard</p>
       </div>
@@ -70,7 +90,6 @@ export default async function ClientPage() {
           </Card>
         ) : (
           <div className="space-y-6">
-            {/* Stats */}
             <div className="grid gap-4 sm:grid-cols-3">
               <Card className="p-5">
                 <p className="text-sm text-muted-foreground">Total Leads</p>
@@ -86,12 +105,11 @@ export default async function ClientPage() {
               </Card>
             </div>
 
-            {/* Assigned forms */}
             <Card className="p-6">
               <h2 className="text-lg font-semibold tracking-tight">Your Forms</h2>
               <div className="mt-4 space-y-2">
                 {assignedForms.map((form) => (
-                  <a
+                  <Link
                     key={form.id}
                     href={`/client/forms/${form.public_id}`}
                     className="flex items-center justify-between rounded-md border border-border p-4 transition-colors hover:bg-surface-muted"
@@ -99,11 +117,11 @@ export default async function ClientPage() {
                     <div>
                       <p className="font-medium">{form.name}</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        Assigned {new Date(access.find((a) => a.forms?.id === form.id)?.created_at ?? Date.now()).toLocaleDateString()}
+                        Assigned {new Date(form.created_at).toLocaleDateString()}
                       </p>
                     </div>
                     <Badge>{form.status}</Badge>
-                  </a>
+                  </Link>
                 ))}
               </div>
             </Card>

@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/db/server';
 import { AppShell } from '@/components/app-shell';
-import { Card, Badge, Button, Link } from '@/components/ui';
+import Link from 'next/link';
+import { Card, Badge } from '@/components/ui';
 
 export const metadata = { title: 'Form' };
 
@@ -16,59 +17,70 @@ export default async function ClientFormPage({
 
   const { formPublicId } = await params;
 
-  // Verify form access
-  const { data: access } = await supabase
-    .from('client_form_access')
-    .select('id, forms(id, name, public_id, status, created_at), workspace:workspaces(*)')
-    .eq('user_id', user.id)
-    .eq('forms.public_id', formPublicId)
+  // Step 1: Find the form
+  const formResult = await supabase
+    .from('forms')
+    .select('id, name, status, public_id, created_at')
+    .eq('public_id', formPublicId)
     .single();
 
-  if (!access) {
-    redirect('/client');
-  }
+  const formRow = formResult.data as { id: string; name: string; status: string; public_id: string; created_at: string } | null;
+  if (!formRow) redirect('/client');
 
-  const form = access.forms;
-  if (!form) redirect('/client');
+  const formId = formRow.id;
+
+  // Step 2: Check client_form_access
+  const accessResult = await supabase
+    .from('client_form_access')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('form_id', formId)
+    .single();
+
+  const access = accessResult.data as { id: string } | null;
+  if (!access) redirect('/client');
+
+  const formName = formRow.name;
+  const formStatus = formRow.status;
+  const formPublicIdValue = formRow.public_id;
+  const formCreatedAt = formRow.created_at;
 
   // Get lead counts
-  const { data: leads } = await supabase
+  const leadsResult = await supabase
     .from('leads')
     .select('id, status, created_at')
-    .eq('form_id', form.id)
+    .eq('form_id', formId)
     .order('created_at', { ascending: false })
     .limit(5);
 
-  const allLeads = await supabase
+  const allLeadsResult = await supabase
     .from('leads')
     .select('id, status')
-    .eq('form_id', form.id);
+    .eq('form_id', formId);
 
-  const totalLeads = allLeads.data?.length ?? 0;
-  const newLeads = allLeads.data?.filter((l) => l.status === 'new').length ?? 0;
+  const leadList = (allLeadsResult.data ?? []) as Array<{ status: string }>;
+  const totalLeads = leadList.length;
+  const newLeads = leadList.filter((l) => l.status === 'new').length;
 
-  const recentLeads = (leads?.data ?? []) as Array<{
-    id: string;
-    status: string;
-    created_at: string;
-  }>;
+  const leadsDataArr = (leadsResult.data ?? []) as Array<{ id: string; status: string; created_at: string }>;
+  const recentLeads = leadsDataArr.map((l) => ({
+    id: l.id,
+    status: l.status,
+    created_at: l.created_at,
+  }));
 
   return (
-    <AppShell
-      user={{ id: user.id, email: user.email }}
-      workspaceName={form.name}
-    >
+    <AppShell user={{ id: user.id, email: user.email }} workspaceName={formName}>
       <div className="border-b border-border bg-surface-muted/50 px-5 py-4 lg:px-8">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-lg font-semibold">{form.name}</p>
-          <Badge>{form.status}</Badge>
+          <p className="text-lg font-semibold">{formName}</p>
+          <Badge>{formStatus}</Badge>
         </div>
       </div>
 
       <div className="px-5 py-6 lg:px-8 lg:py-8">
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
-            {/* Stats */}
             <div className="grid gap-4 sm:grid-cols-3">
               <Card className="p-5">
                 <p className="text-sm text-muted-foreground">Total Leads</p>
@@ -81,12 +93,11 @@ export default async function ClientFormPage({
               <Card className="p-5">
                 <p className="text-sm text-muted-foreground">Status</p>
                 <p className="mt-1 flex items-center gap-2">
-                  <Badge>{form.status}</Badge>
+                  <Badge>{formStatus}</Badge>
                 </p>
               </Card>
             </div>
 
-            {/* Recent leads */}
             <Card className="p-6">
               <h2 className="text-lg font-semibold tracking-tight">Recent Leads</h2>
               {recentLeads.length === 0 ? (
@@ -98,7 +109,7 @@ export default async function ClientFormPage({
                   {recentLeads.map((lead) => (
                     <Link
                       key={lead.id}
-                      href={`/client/forms/${formPublicId}/leads/${lead.id}`}
+                      href={`/client/forms/${formPublicIdValue}/leads/${lead.id}`}
                       className="block rounded-md border border-border p-3 transition-colors hover:bg-surface-muted"
                     >
                       <p className="text-sm font-medium">Lead</p>
@@ -115,7 +126,10 @@ export default async function ClientFormPage({
                 </div>
               )}
               <div className="mt-4">
-                <Link href={`/client/forms/${formPublicId}/leads`} className="text-sm text-link hover:underline">
+                <Link
+                  href={`/client/forms/${formPublicIdValue}/leads`}
+                  className="text-sm text-link hover:underline"
+                >
                   View all leads →
                 </Link>
               </div>
@@ -128,12 +142,12 @@ export default async function ClientFormPage({
               <dl className="mt-3 space-y-2 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Form ID</span>
-                  <span className="font-mono text-xs">{form.public_id}</span>
+                  <span className="font-mono text-xs">{formPublicIdValue}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Created</span>
                   <span className="font-medium">
-                    {new Date(form.created_at).toLocaleDateString()}
+                    {new Date(formCreatedAt).toLocaleDateString()}
                   </span>
                 </div>
               </dl>

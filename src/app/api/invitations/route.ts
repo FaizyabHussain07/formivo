@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/db/server';
 import { createHash, randomBytes } from 'crypto';
 import { z } from 'zod';
+import { sendInvitationEmail } from '@/lib/email';
 
 const createInvitationSchema = z.object({
   formPublicId: z.string().min(1),
@@ -18,7 +19,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Verify workspace owner
   const { data: membership } = await supabase
     .from('workspace_memberships')
     .select('workspace_id, role')
@@ -52,7 +52,6 @@ export async function POST(request: NextRequest) {
 
   const { formPublicId, email } = parsed.data;
 
-  // Find the form
   const { data: form } = await supabase
     .from('forms')
     .select('id, workspace_id, name')
@@ -73,27 +72,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Check if user already has access to this form
-  const { data: existingAccess } = await supabase
-    .from('client_form_access')
-    .select('id')
-    .eq('user_id', user.id) // placeholder — we need to find the profile by email
-    .eq('form_id', form.id)
-    .single();
-
-  if (existingAccess) {
-    return NextResponse.json(
-      { error: { code: 'CONFLICT', message: 'This user already has access to this form.' } },
-      { status: 409 },
-    );
-  }
-
-  // Generate invitation token
-  const rawToken = 'inv_' + randomBytes(32).toString('hex');
-  const tokenHash = createHash('sha256').update(rawToken).digest('hex');
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
-
-  // Check for existing pending invitation to same email+form
+  // Check for an existing pending invitation to the same email + form.
+  // The old client_access check was looking up by the signed-in owner's id,
+  // which cannot detect an invitation for a different recipient email.
   const { data: existingInvitation } = await supabase
     .from('invitations')
     .select('id, status')
@@ -105,12 +86,28 @@ export async function POST(request: NextRequest) {
 
   if (existingInvitation) {
     return NextResponse.json(
-      { error: { code: 'CONFLICT', message: 'A pending invitation already exists for this email and form.' } },
+      { error: { code: 'CONFLICT', message: 'An invitation to this email and form is already pending. Resend it from the form’s client-sharing settings.' } },
       { status: 409 },
     );
   }
 
-  // Create the invitation
+  const rawToken = 'inv_' + randomBytes(32).toString('hex');
+  const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, full_name, avatar_url')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile) {
+    return NextResponse.json(
+      { error: { code: 'INTERNAL_ERROR', message: 'User profile not found.' } },
+      { status: 500 },
+    );
+  }
+
   const { data: invitation, error: inviteError } = await supabase
     .from('invitations')
     .insert({
@@ -132,96 +129,68 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Generate the invitation URL
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'http://localhost:3000';
   const inviteUrl = `${appUrl}/invite/${rawToken}`;
 
-  // Send invitation email via Resend
-  const resendKey = process.env.RESEND_API_KEY;
-  if (resendKey) {
-    try {
-      const emailBody = `
-        <html>
-          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 0;">
-              <tr>
-                <td align="center">
-                  <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                    <tr>
-                      <td style="padding: 32px 40px; background-color: #2DD4BF; text-align: center;">
-                        <h1 style="color: #0B0D10; font-size: 24px; font-weight: 700; margin: 0;">You're invited to Formivo</h1>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 32px 40px; color: #18181b; font-size: 15px; line-height: 1.6;">
-                        <p style="margin: 0 0 16px;">
-                          <strong>${form.name}</strong> in <strong>${membership.workspace?.name || 'your workspace'}</strong> has invited you to view their leads dashboard.
-                        </p>
-                        <p style="margin: 0 0 24px;">
-                          You'll be able to view leads and basic analytics for this form — without seeing any technical configuration or billing information.
-                        </p>
-                        <table cellpadding="0" cellspacing="0" style="margin: 32px 0;">
-                          <tr>
-                            <td style="background-color: #2DD4BF; border-radius: 6px;">
-                              <a href="${inviteUrl}" style="display: inline-block; padding: 12px 24px; color: #0B0D10; font-size: 15px; font-weight: 600; text-decoration: none; text-align: center;">
-                                Accept Invitation
-                              </a>
-                            </td>
-                          </tr>
-                        </table>
-                        <p style="margin: 0 0 16px; color: #52525b; font-size: 13px;">
-                          This invitation expires in 7 days.
-                        </p>
-                        <p style="margin: 0; color: #a1a1aa; font-size: 12px;">
-                          If you weren't expecting this invitation, you can safely ignore this email.
-                        </p>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 20px 40px; background-color: #fafafa; border-top: 1px solid #e4e4e7; text-align: center; color: #a1a1aa; font-size: 12px;">
-                        © ${new Date().getFullYear()} Formivo
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-            </table>
-          </body>
-        </html>
-      `;
+  const { data: ws } = await supabase
+    .from('workspaces')
+    .select('name')
+    .eq('id', form.workspace_id)
+    .single();
 
-      const emailRes = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${resendKey}`,
+  // Use the profile's full name when available, otherwise fall back to the
+  // email local part so the invitation email still feels personal.
+  const inviterName =
+    typeof profile.full_name === 'string' && profile.full_name.trim().length > 0
+      ? profile.full_name.trim()
+      : typeof user.email === 'string'
+        ? user.email.split('@')[0] || 'A Formivo user'
+        : 'A Formivo user';
+
+  const emailResult = await sendInvitationEmail({
+    recipientEmail: email.toLowerCase(),
+    inviterName,
+    workspaceName: ws?.name ?? 'Formivo',
+    formName: form.name,
+    invitationUrl: inviteUrl,
+    expiresAt: new Date(invitation.expires_at),
+    resendApiKey: process.env.RESEND_API_KEY ?? null,
+    fromEmail: process.env.RESEND_FROM_EMAIL ?? null,
+  });
+
+  if (!emailResult.success) {
+    console.error('[invitation_send_failed]', {
+      invitationId: invitation.id,
+      email: email.toLowerCase(),
+      code: emailResult.code,
+      message: emailResult.message,
+    });
+
+    return NextResponse.json(
+      {
+        error: {
+          code: 'INVITATION_SEND_FAILED',
+          message: 'The invitation was created but could not be delivered. You can retry sending it from the form sharing settings.',
+          details: { recipient: email.toLowerCase() },
         },
-        body: JSON.stringify({
-          from: process.env.RESEND_FROM_EMAIL || 'Formivo <onboarding@resend.dev>',
-          to: [email],
-          subject: `You're invited to view leads in Formivo`,
-          html: emailBody,
-        }),
-      });
-
-      if (!emailRes.ok) {
-        console.error('[invitation_email_failed]', { email, status: emailRes.status });
-        // Don't fail the invitation creation if email fails — the invite URL still works
-      }
-    } catch (err) {
-      console.error('[invitation_email_error]', { email, err: String(err) });
-    }
+      },
+      { status: 500 },
+    );
   }
 
-  return NextResponse.json({
-    success: true,
-    invitation: {
-      id: invitation.id,
-      email: invitation.email,
-      formId: invitation.form_id,
-      formName: form.name,
-      status: invitation.status,
-      expiresAt: invitation.expires_at,
+  return NextResponse.json(
+    {
+      success: true,
+      invitation: {
+        id: invitation.id,
+        email: invitation.email,
+        formId: invitation.form_id,
+        formName: form.name,
+        status: invitation.status,
+        expiresAt: invitation.expires_at,
+      },
+      email: { sent: true, providerMessageId: emailResult.providerMessageId },
     },
-  }, { status: 201 });
+    { status: 201 },
+  );
 }

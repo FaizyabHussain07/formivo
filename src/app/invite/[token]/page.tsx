@@ -131,24 +131,21 @@ export default async function InvitePage({
     // Accept the invitation
     const { error: membershipError } = await supabase
       .from('workspace_memberships')
-      .insert({
+      .upsert({
         workspace_id: invitation.workspace_id,
         user_id: user.id,
         role: 'client',
-      })
-      .onConflict('workspace_id, user_id')
-      .ignore();
+      });
 
     if (!membershipError) {
       await supabase
         .from('client_form_access')
-        .insert({
+        .upsert({
           workspace_id: invitation.workspace_id,
           form_id: invitation.form_id,
           user_id: user.id,
-        })
-        .onConflict('form_id, user_id')
-        .ignore();
+        });
+
 
       await supabase
         .from('invitations')

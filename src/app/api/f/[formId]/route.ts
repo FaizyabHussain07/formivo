@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, clientIp } from '@/lib/rate-limit';
+import { PRODUCTION_URL } from '@/lib/app-config';
 import {
   createLead,
   sha256,
@@ -38,7 +39,7 @@ const RESERVED_FIELDS = new Set(['_redirect', '_next']);
 
 const APP_ORIGIN = (
   process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ??
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : PRODUCTION_URL)
 ).replace(/\/$/, '');
 
 /* ── Responses ─────────────────────────────────────────────────── */

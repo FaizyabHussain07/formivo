@@ -221,18 +221,6 @@ export default function DocsPage() {
               </div>
             ))}
           </div>
-          <CodeBlock
-            lang="http"
-            filename="401 Unauthorized"
-            code={`{
-  "success": false,
-  "error": {
-    "code": "UNAUTHORIZED",
-    "message": "Invalid form secret.",
-    "requestId": "req_31d70c55"
-  }
-}`}
-          />
         </Section>
 
         <Section id="limits" title="Rate Limits & Size">

@@ -4,17 +4,20 @@
  * if a server-only value is needed. Public values are explicitly marked.
  */
 
-/** Public app URL, used for links, emails, and API examples. */
-export const APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-
 /**
  * Canonical production origin. Every endpoint URL and integration example a
  * developer copies always uses this domain, regardless of where the dashboard
  * itself is being served from (local dev, preview deploy, production).
  */
 export const PRODUCTION_URL = "https://formivo.faizyab.me";
+
+/**
+ * Public app URL for links, emails, and metadata. Localhost is never used in
+ * product URLs: unset env falls back to the production domain.
+ */
+export const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : PRODUCTION_URL);
 
 /** True when required third-party credentials are present (drives degrade-gracefully UI). */
 export const hasResendConfig = () => Boolean(process.env.RESEND_API_KEY);

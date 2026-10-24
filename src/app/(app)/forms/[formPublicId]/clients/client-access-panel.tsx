@@ -23,6 +23,37 @@ type ActionTarget =
   | { kind: 'access'; id: string; email: string }
   | null;
 
+/** Fallback link when the invitation email could not be delivered. */
+function InviteLinkFallback({ inviteUrl }: { inviteUrl: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="mt-2 space-y-1.5">
+      <p className="text-xs font-medium text-muted-foreground">
+        Invitation link (share it with your client manually):
+      </p>
+      <div className="flex items-center gap-2">
+        <code className="min-w-0 flex-1 truncate rounded-md border border-border bg-surface-muted px-3 py-2 font-mono text-xs">
+          {inviteUrl}
+        </code>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={async () => {
+            await navigator.clipboard.writeText(inviteUrl);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+          }}
+        >
+          {copied ? 'Copied' : 'Copy'}
+        </Button>
+      </div>
+      <p className="text-xs text-subtle-foreground">
+        Only the invited email address can accept it.
+      </p>
+    </div>
+  );
+}
+
 export function ClientAccessPanel({
   formPublicId,
   formName,
@@ -36,7 +67,11 @@ export function ClientAccessPanel({
 }) {
   const router = useRouter();
   const [email, setEmail] = useState('');
-  const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+  const [notice, setNotice] = useState<{
+    tone: 'ok' | 'error';
+    text: string;
+    inviteUrl?: string;
+  } | null>(null);
   const [invitePending, startInvite] = useTransition();
   const [actionPending, setActionPending] = useState(false);
   const [target, setTarget] = useState<ActionTarget>(null);
@@ -54,7 +89,11 @@ export function ClientAccessPanel({
       const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        setNotice({ tone: 'error', text: data?.error?.message ?? 'Could not send the invitation.' });
+        setNotice({
+          tone: 'error',
+          text: data?.error?.message ?? 'Could not send the invitation.',
+          inviteUrl: data?.error?.details?.inviteUrl,
+        });
         return;
       }
 
@@ -103,7 +142,11 @@ export function ClientAccessPanel({
     const data = await res.json().catch(() => null);
 
     if (!res.ok) {
-      setNotice({ tone: 'error', text: data?.error?.message ?? 'Could not resend the invitation.' });
+      setNotice({
+        tone: 'error',
+        text: data?.error?.message ?? 'Could not resend the invitation.',
+        inviteUrl: data?.error?.details?.inviteUrl,
+      });
       return;
     }
     setNotice({ tone: 'ok', text: `Invitation resent to ${invitation.email}.` });
@@ -137,7 +180,7 @@ export function ClientAccessPanel({
       </form>
 
       {notice && (
-        <p
+        <div
           role="status"
           className={`rounded-md px-3 py-2 text-sm ${
             notice.tone === 'ok'
@@ -146,7 +189,10 @@ export function ClientAccessPanel({
           }`}
         >
           {notice.text}
-        </p>
+          {notice.tone === 'error' && notice.inviteUrl && (
+            <InviteLinkFallback inviteUrl={notice.inviteUrl} />
+          )}
+        </div>
       )}
 
       <section aria-labelledby="pending-invitations">

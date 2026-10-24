@@ -135,14 +135,20 @@ export async function PATCH(
 
   if (!emailResult.success) {
     console.error('[invitation_resend_failed]', { invitationId: invitation.id, code: emailResult.code });
+    // The token was rotated, so any older link is dead. Hand the fresh link
+    // back to the authenticated owner (never logged) for manual sharing.
+    const notConfigured = emailResult.code === 'EMAIL_CONFIGURATION_ERROR';
     return NextResponse.json(
       {
         error: {
           code: 'INVITATION_SEND_FAILED',
-          message: 'The invitation was updated but the email could not be delivered. Try again later.',
+          message: notConfigured
+            ? 'Email delivery is not configured on this deployment. Copy the new invitation link below and send it to your client yourself.'
+            : 'The email could not be delivered. Copy the new invitation link below and send it to your client yourself, or retry later.',
+          details: { inviteUrl: invitationUrl },
         },
       },
-      { status: 500 },
+      { status: 502 },
     );
   }
 

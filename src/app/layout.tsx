@@ -27,9 +27,7 @@ export const metadata: Metadata = {
   },
   description:
     "Formivo connects your existing website forms to a single endpoint. Collect submissions, manage leads, and share read-only dashboards with your clients.",
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "http://localhost:3000",
-  ),
+  metadataBase: new URL(appUrl),
   icons: { icon: "/logo.png" },
   openGraph: {
     title: "Formivo — Forms to leads. Leads to clients.",

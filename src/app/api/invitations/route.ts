@@ -182,15 +182,21 @@ export async function POST(request: NextRequest) {
       message: emailResult.message,
     });
 
+    // The invitation row exists but no one knows its link. Return the raw URL
+    // to the authenticated owner ONLY (never logged) so they can share it
+    // manually — acceptance still requires the invited email to sign in.
+    const notConfigured = emailResult.code === 'EMAIL_CONFIGURATION_ERROR';
     return NextResponse.json(
       {
         error: {
           code: 'INVITATION_SEND_FAILED',
-          message: 'The invitation was created but could not be delivered. You can retry sending it from the form sharing settings.',
-          details: { recipient: email.toLowerCase() },
+          message: notConfigured
+            ? 'Email delivery is not configured on this deployment. Copy the invitation link below and send it to your client yourself.'
+            : 'The invitation was created but the email could not be delivered. Copy the invitation link below and send it to your client yourself, or retry later.',
+          details: { recipient: email.toLowerCase(), inviteUrl },
         },
       },
-      { status: 500 },
+      { status: 502 },
     );
   }
 

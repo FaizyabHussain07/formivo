@@ -262,11 +262,10 @@ export default function DocsPage() {
 
         <Section id="security" title="Security">
           <ul className="list-disc space-y-1.5 pl-5">
-            <li>Keep your form secret out of browser code and public repositories.</li>
-            <li>Rotate the secret if it may have leaked — old integrations stop immediately.</li>
             <li>Authorization is enforced server-side and by row-level security, never by hidden UI.</li>
             <li>A form ID only routes a submission; it never grants read access to data.</li>
             <li>Submitted values are rendered as text, never executed as markup.</li>
+            <li>Submissions are rate-limited and size-capped at the endpoint.</li>
           </ul>
           <Card className="p-4">
             <p className="text-[13px] text-muted-foreground">
@@ -283,7 +282,7 @@ export default function DocsPage() {
             account and then sees a read-only portal for that form alone.
           </p>
           <ul className="list-disc space-y-1.5 pl-5">
-            <li>Clients cannot see other forms, settings, billing, or secrets.</li>
+            <li>Clients cannot see other forms, settings, or billing.</li>
             <li>Access is stored per form and enforced by database policies.</li>
             <li>Revoking access takes effect on the next request.</li>
           </ul>

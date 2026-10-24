@@ -147,10 +147,12 @@ export function AppShell({
 
         <div className="scroll-thin flex-1 overflow-y-auto px-2.5 py-4">
           <NavLinks pathname={pathname} />
-        </div>            <div className="border-t border-border p-2.5">
-              <UserButton user={user} />
-            </div>
-          </aside>
+        </div>
+
+        <div className="border-t border-border p-2.5">
+          <UserButton user={user} />
+        </div>
+      </aside>
 
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">

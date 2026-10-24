@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { createServerSupabaseClient } from '@/lib/db/server';
+import { PRODUCTION_URL } from '@/lib/app-config';
 
 /**
  * Accept an invitation.
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'http://localhost:3000';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || PRODUCTION_URL;
 
   return NextResponse.json({
     success: true,

@@ -5,7 +5,7 @@ import { requireWorkspace } from '@/lib/session';
 export const metadata = { title: 'Clients' };
 
 export default async function ClientsPage() {
-  const { supabase, user, workspace } = await requireWorkspace();
+  const { supabase, workspace } = await requireWorkspace();
 
   const { data: access } = await supabase
     .from('client_form_access')

@@ -3,7 +3,7 @@ import { createHash, randomBytes } from 'crypto';
 import { createServerSupabaseClient } from '@/lib/db/server';
 import { checkRateLimit, clientIp } from '@/lib/rate-limit';
 import { sendInvitationEmail } from '@/lib/email';
-import { invitationTtlMs } from '@/lib/app-config';
+import { invitationTtlMs, PRODUCTION_URL } from '@/lib/app-config';
 
 /** Owner-scoped lookup shared by resend/revoke. */
 async function requireOwnedInvitation(invitationId: string) {
@@ -95,7 +95,8 @@ export async function PATCH(
     );
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'http://localhost:3000';
+  // Never put localhost into a real email — fall back to production.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || PRODUCTION_URL;
   const invitationUrl = `${appUrl}/invitations/accept?token=${encodeURIComponent(rawToken)}`;
 
   const { data: form } = await supabase

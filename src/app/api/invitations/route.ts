@@ -4,7 +4,7 @@ import { createHash, randomBytes } from 'crypto';
 import { z } from 'zod';
 import { sendInvitationEmail } from '@/lib/email';
 import { checkRateLimit, clientIp } from '@/lib/rate-limit';
-import { invitationTtlMs } from '@/lib/app-config';
+import { invitationTtlMs, PRODUCTION_URL } from '@/lib/app-config';
 
 const createInvitationSchema = z.object({
   formPublicId: z.string().min(1),
@@ -143,7 +143,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'http://localhost:3000';
+  // Real emails must never carry localhost links: fall back to the
+  // production domain, not the dev server.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || PRODUCTION_URL;
   const inviteUrl = `${appUrl}/invitations/accept?token=${encodeURIComponent(rawToken)}`;
 
   const { data: ws } = await supabase
